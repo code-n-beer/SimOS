@@ -1,0 +1,10 @@
+[package]
+name = "simos"
+version = "0.1.0"
+authors = ["tsarpf", "crank"]
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+rlibc = "1.0"
