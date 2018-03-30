@@ -1,7 +1,7 @@
 use core::fmt;
 use core::ptr::Unique;
-use volatile::Volatile;
 use spin::Mutex;
+use volatile::Volatile;
 
 #[allow(dead_code)]
 #[repr(u8)]
