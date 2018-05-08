@@ -20,29 +20,31 @@ CXXFLAGS += -g -ffreestanding -Wall -Wextra -std=c++17
 all: $(kernel)
 
 clean:
-	@rm -r build
+	rm -r build
 
 run: $(iso)
-	@qemu-system-x86_64 -m 1G -cdrom $(iso)
+	qemu-system-x86_64 -m 1G -cdrom $(iso)
 
 iso: $(iso)
 
+build_dir:
+	@mkdir -p build
+
 $(iso): $(kernel) $(grub_cfg)
 	@mkdir -p build/isofiles/boot/grub
-	@cp $(kernel) build/isofiles/boot/kernel.bin
-	@cp $(grub_cfg) build/isofiles/boot/grub
-	@grub-mkrescue -o $(iso) build/isofiles 2> /dev/null
-	@rm -r build/isofiles
+	cp $(kernel) build/isofiles/boot/kernel.bin
+	cp $(grub_cfg) build/isofiles/boot/grub
+	grub-mkrescue -o $(iso) build/isofiles 2> /dev/null
+	rm -r build/isofiles
 
-$(kernel): $(cpp_object_files) $(assembly_object_files) $(linker_script)
-	@ld -n --gc-sections -T $(linker_script) -o $(kernel) \
+$(kernel): build_dir $(cpp_object_files) $(assembly_object_files) $(linker_script)
+	ld -n --gc-sections -T $(linker_script) -o $(kernel) \
 		$(assembly_object_files) $(cpp_object_files)
 
 $(cpp_object_files): $(cpp_source_files)
 	@mkdir -p $(shell dirname $@)
 	x86_64-elf-g++ $(CXXFLAGS) -c $< -o $@
 
-# compile assembly files
 build/arch/$(arch)/%.o: src/arch/$(arch)/%.asm
 	@mkdir -p $(shell dirname $@)
-	@nasm -felf64 $< -o $@
+	nasm -felf64 $< -o $@
