@@ -12,6 +12,9 @@ extern crate volatile;
 #[macro_use]
 mod vga;
 
+mod memory;
+use memory::{FrameAllocator, AreaFrameAllocator};
+
 #[no_mangle]
 pub extern "C" fn rust_main(multiboot_addr: usize) {
     vga::clear();
@@ -42,6 +45,31 @@ pub extern "C" fn rust_main(multiboot_addr: usize) {
             section.addr, section.size, section.flags
         );
     }
+
+    let kernel_start = elf_sections.sections().map(|s| s.addr).min().unwrap();
+    let kernel_end = elf_sections
+        .sections()
+        .map(|s| s.addr + s.size)
+        .max()
+        .unwrap();
+    let multiboot_start = multiboot_addr;
+    let multiboot_end = multiboot_start + (multiboot.total_size as usize);
+
+    println!("Kernel: {:#016x}-{:#016x}", kernel_start, kernel_end);
+    println!("Multiboot: {:#016x}-{:#016x}", multiboot_start, multiboot_end);
+
+    let mut frame_allocator = AreaFrameAllocator::new(
+        kernel_start as usize,
+        kernel_end as usize,
+        multiboot_start,
+        multiboot_end,
+        memory_map.memory_areas(),
+    );
+
+for i in 0..180 {
+    frame_allocator.allocate_frame();
+    println!("{:#016x}", i << 12);
+}
 }
 
 #[lang = "eh_personality"]
