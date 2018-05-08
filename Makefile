@@ -13,6 +13,8 @@ cpp_source_files := $(wildcard src/*.cpp)
 cpp_object_files := $(patsubst src/%.cpp, \
     build/%.o, $(cpp_source_files))
 
+CXXFLAGS += -g -ffreestanding -Wall -Wextra -std=c++17
+
 .PHONY: all clean run iso kernel
 
 all: $(kernel)
@@ -38,7 +40,7 @@ $(kernel): $(cpp_object_files) $(assembly_object_files) $(linker_script)
 
 $(cpp_object_files): $(cpp_source_files)
 	@mkdir -p $(shell dirname $@)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	x86_64-elf-g++ $(CXXFLAGS) -c $< -o $@
 
 # compile assembly files
 build/arch/$(arch)/%.o: src/arch/$(arch)/%.asm
