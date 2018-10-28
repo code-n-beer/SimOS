@@ -5,6 +5,7 @@ section .text
 bits 32
 start:
   mov esp, stack_top
+  mov edi, ebx ; move multiboot header to rdi
 
   call check_multiboot
   call check_cpuid
@@ -16,9 +17,6 @@ start:
   lgdt [gdt64.pointer]
   jmp gdt64.code:long_mode_start
 
-
-  ; print 'OK' to screen
-  mov dword [0xb8000], 0x2f4b2f4f
   hlt
 
 error:
@@ -159,5 +157,5 @@ p2_table:
     resb 4096
 
 stack_bottom:
-  resb 64
+  resb 4096 * 4
 stack_top:
