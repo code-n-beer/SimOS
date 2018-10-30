@@ -13,7 +13,7 @@ cpp_source_files := $(wildcard src/*.cpp)
 cpp_object_files := $(patsubst src/%.cpp, \
     build/%.o, $(cpp_source_files))
 
-CXXFLAGS += -g -ffreestanding -Wall -Wextra -std=c++17 -Iinclude/
+CXXFLAGS += -g -ffreestanding -Wall -Wextra -std=gnu++17 -Iinclude/
 
 .PHONY: all clean run iso kernel
 

@@ -1,7 +1,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
- 
+
 /* Check if the compiler thinks we are targeting the wrong operating system. */
 #if defined(__linux__)
 #error "You are not using a cross-compiler, you will most certainly run into trouble"
@@ -98,7 +98,7 @@ void terminal_scroll_line() {
         }
     }
 }
- 
+
 void terminal_putchar(char c) 
 {
     if(c == '\n') {
@@ -166,16 +166,53 @@ void print_num(int num)
     n[1] = num % 10 + '0';
     terminal_writestring(n);
 }
+
+template<typename T> constexpr bool isIntegerType = false;
+
+template<> constexpr bool isIntegerType<int8_t> = true;
+template<> constexpr bool isIntegerType<int16_t> = true;
+template<> constexpr bool isIntegerType<int32_t> = true;
+template<> constexpr bool isIntegerType<int64_t> = true;
+template<> constexpr bool isIntegerType<uint8_t> = true;
+template<> constexpr bool isIntegerType<uint16_t> = true;
+template<> constexpr bool isIntegerType<uint32_t> = true;
+template<> constexpr bool isIntegerType<uint64_t> = true;
+
+const char hexDigits[] = "0123456789abcdef";
+
+template<typename T>
+void print_hex(T value)
+{
+    static_assert(isIntegerType<T>, "pls print an integer");
+    char buf[2 * sizeof(T)];
+
+    T temp = value;
+
+    for (int i = sizeof(buf) - 1; i >= 0; i--) {
+        buf[i] = hexDigits[temp & 0xF];
+        temp >>= 4;
+    }
+
+    terminal_write(buf, sizeof(buf));
+}
+
 extern "C" void kmain(void) 
 {
     /* Initialize terminal interface */
     terminal_initialize();
  
+    print_hex<uint16_t>(0x1337);
+    terminal_writestring("\n");
+    print_hex<uint32_t>(0xDEADBEEF);
+    terminal_writestring("\n");
+    print_hex<uint64_t>(0xBADC0FFEED15EA5EULL);
+ /*
     for(int i = 0; i < 30; i++)
     {
         terminal_writestring("Hello, kernel World!\n");
         print_num(i);
     }
+    */
 }
 
 //extern "C" void kmain(const void* multibootHeader)
