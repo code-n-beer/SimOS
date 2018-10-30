@@ -196,16 +196,33 @@ void print_hex(T value)
     terminal_write(buf, sizeof(buf));
 }
 
+extern uint64_t g_PML4[512];
+extern uint64_t g_PDP[512];
+extern uint64_t g_PD[512];
+
 extern "C" void kmain(void) 
 {
     /* Initialize terminal interface */
     terminal_initialize();
+
+    terminal_writestring("\nPML4\n");
+    for (int i = 0; i < 8; i++) {
+        print_hex(g_PML4[i]);
+        terminal_writestring("\n");
+    }
+
+    terminal_writestring("\nPDP\n");
+    for (int i = 0; i < 8; i++) {
+        print_hex(g_PDP[i]);
+        terminal_writestring("\n");
+    }
+
+    terminal_writestring("\nPD\n");
+    for (int i = 0; i < 8; i++) {
+        print_hex(g_PD[i]);
+        terminal_writestring("\n");
+    }
  
-    print_hex<uint16_t>(0x1337);
-    terminal_writestring("\n");
-    print_hex<uint32_t>(0xDEADBEEF);
-    terminal_writestring("\n");
-    print_hex<uint64_t>(0xBADC0FFEED15EA5EULL);
  /*
     for(int i = 0; i < 30; i++)
     {

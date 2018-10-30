@@ -1,6 +1,9 @@
-#include <malloc.h>
-#include <cstdio>
-#include <cstdint>
+#include <kernel.h>
+
+// using 2MB pages we only need three levels of pagetables
+extern uint64_t g_PML4[512];
+extern uint64_t g_PDP[512];
+extern uint64_t g_PD[512];
 
 struct BlockHeader
 {
@@ -65,7 +68,7 @@ void* allocateBlock(uint32_t size)
         block->size = size;
     } 
 
-    nextFree = reinterpret_cast<BlockHeader*>(getBlockAddress<uint8_t>(block) + size);
+    nextFree = reinterpret_cast<BlockHeader*>(getBlockAddress(block) + size);
     nextFree->linkNext(nullptr);
     nextFree->size = 0;
     nextFree->allocated = false;
@@ -83,6 +86,7 @@ void freeBlock(void* ptr)
     nextFree = block;
 }
 
+/*
 int main(int argc, char* argv[])
 {
     auto heapSize = 2048 * 1024;
@@ -107,4 +111,4 @@ int main(int argc, char* argv[])
     printf("d(10) = %p\n", d);
 
     return 0;
-}
+}*/

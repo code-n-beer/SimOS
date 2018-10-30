@@ -28,28 +28,28 @@ error:
 
 set_up_page_tables:
     ; map first P4 entry to P3 table
-    mov eax, p3_table
+    mov eax, g_PDP
     or eax, 0b11 ; present + writable
-    mov [p4_table], eax
+    mov [g_PML4], eax
 
     ; map first P3 entry to P2 table
-    mov eax, p2_table
+    mov eax, g_PD
     or eax, 0b11 ; present + writable
-    mov [p3_table], eax
+    mov [g_PDP], eax
 
     ; map each P2 entry to a huge 2MiB page
     mov ecx, 0         ; counter variable
 
-.map_p2_table:
+.map_g_PD:
     ; map ecx-th P2 entry to a huge page that starts at address 2MiB*ecx
     mov eax, 0x200000  ; 2MiB
     mul ecx            ; start address of ecx-th page
     or eax, 0b10000011 ; present + writable + huge
-    mov [p2_table + ecx * 8], eax ; map ecx-th entry
+    mov [g_PD + ecx * 8], eax ; map ecx-th entry
 
     inc ecx            ; increase counter
     cmp ecx, 512       ; if counter == 512, the whole P2 table is mapped
-    jne .map_p2_table  ; else map the next entry
+    jne .map_g_PD  ; else map the next entry
 
     ret
 
@@ -116,7 +116,7 @@ check_long_mode:
 
 enable_paging:
     ; load P4 to cr3 register (cpu uses this to access the P4 table)
-    mov eax, p4_table
+    mov eax, g_PML4
     mov cr3, eax
 
     ; enable PAE-flag in cr4 (Physical Address Extension)
@@ -131,7 +131,7 @@ enable_paging:
     wrmsr
 
     ; enable paging in the cr0 register
-        mov eax, cr0
+    mov eax, cr0
     or eax, 1 << 31
     mov cr0, eax
 
@@ -148,12 +148,17 @@ gdt64:
     dq gdt64
 
 section .bss
+
+global g_PML4
+global g_PDP
+global g_PD
+
 align 4096
-p4_table:
+g_PML4:
     resb 4096
-p3_table:
+g_PDP:
     resb 4096
-p2_table:
+g_PD:
     resb 4096
 
 stack_bottom:
