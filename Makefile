@@ -13,14 +13,14 @@ cpp_source_files := $(wildcard src/*.cpp)
 cpp_object_files := $(patsubst src/%.cpp, \
     build/%.o, $(cpp_source_files))
 
-CXXFLAGS += -g -ffreestanding -Wall -Wextra -std=c++17
+CXXFLAGS += -g -ffreestanding -Wall -Wextra -std=c++17 -Iinclude/
 
 .PHONY: all clean run iso kernel
 
 all: $(kernel)
 
 clean:
-	rm -r build
+	rm -rf build
 
 run: $(iso)
 	qemu-system-x86_64 -m 1G -cdrom $(iso)
@@ -41,7 +41,7 @@ $(kernel): build_dir $(cpp_object_files) $(assembly_object_files) $(linker_scrip
 	x86_64-elf-ld -n --gc-sections -T $(linker_script) -o $(kernel) \
 		$(assembly_object_files) $(cpp_object_files)
 
-$(cpp_object_files): $(cpp_source_files)
+build/%.o: src/%.cpp
 	@mkdir -p $(shell dirname $@)
 	x86_64-elf-g++ $(CXXFLAGS) -c $< -o $@
 
