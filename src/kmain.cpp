@@ -216,7 +216,7 @@ extern uint64_t g_PML4[512];
 extern uint64_t g_PDP[512];
 extern uint64_t g_PD[512];
 
-extern "C" void kmain(const uint32_t* multibootHeader)
+extern "C" void kmain(uint64_t* multibootHeader)
 {
     /* Initialize terminal interface */
     terminal_initialize();
@@ -243,35 +243,63 @@ extern "C" void kmain(const uint32_t* multibootHeader)
     // 0 is flags
     print_bitmap(multibootHeader[0]);
 
-    // address of memory map buffer
-    terminal_writestring("\n address of buffer \n");
-    print_bitmap(multibootHeader[48]);
 
-    // size of memory map buffer
-    terminal_writestring("\n buffer size\n");
-    print_bitmap(multibootHeader[44]);
+    typedef struct tag
+    {
+        uint32_t type;
+        uint32_t size;
+    } tag;
 
     typedef struct multiboot_mmap_entry
     {
-        uint32_t size;
         uint64_t addr;
         uint64_t len;
         uint32_t type;
+        uint32_t zero;
     } multiboot_mmap_entry;
 
+    uint32_t* total_size = reinterpret_cast<uint32_t*>(multibootHeader);
+    terminal_writestring("\n total size of tags structure \n");
+    print_hex(*total_size);
+    terminal_writestring("\n reserved \n");
+    print_hex(*(total_size+1));
+
+    // tags start from second idx, first is u32 total size of tag structure + u32 reserved 
+    uint64_t* tagp = multibootHeader + 1;
+
+    while(tagp < multibootHeader + (*total_size) / sizeof(multibootHeader))
+    {
+        tag* t = reinterpret_cast<tag*>(tagp);
+
+        // pad size to 8 bytes
+        uint32_t size_bytes = ((t->size - 1) & ~0x7) + 0x8;
+
+        if(t->type == 0x6) {
+            terminal_writestring("\n tag type \n");
+            print_hex(t->type);
+            terminal_writestring("\n tag size \n");
+            print_hex(t->size);
+            //terminal_writestring("\n tag size padded \n");
+            //print_hex(size_bytes);
+        }
+
+        tagp = tagp + size_bytes / sizeof(uint64_t);
+    }
+
     // base addr of first block
-    /*jeejee*/ auto jerry = reinterpret_cast<multiboot_mmap_entry*>(multibootHeader[48]);
-    terminal_writestring("\n block size \n");
-    print_bitmap(jerry->size);
+    ///*jeejee*/ auto jerry = reinterpret_cast<multiboot_mmap_entry*>(multibootHeader[48/4]);
+    //terminal_writestring("\n block size \n");
+    //print_hex(jerry->size);
 
-    terminal_writestring("\n first block address \n");
-    print_bitmap(jerry->addr);
+    //terminal_writestring("\n first block address \n");
+    //print_hex(jerry->addr);
 
-    terminal_writestring("\n length of first block \n");
-    print_bitmap(jerry->len);
+    //terminal_writestring("\n length of first block \n");
+    //print_hex(jerry->len);
 
-    terminal_writestring("\n type of first block \n");
-    print_bitmap(jerry->type);
+    //terminal_writestring("\n type of first block \n");
+    //print_hex(jerry->type);
+
 
     //terminal_writestring("\n second block address \n");
     //print_bitmap(*(jerry+3));
