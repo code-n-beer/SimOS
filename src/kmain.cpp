@@ -11,6 +11,12 @@
 #if !defined(__x86_64__)
 #error "This tutorial needs to be compiled with a ix86-elf compiler"
 #endif
+
+#define MULTIBOOT_MEMORY_AVAILABLE              1
+#define MULTIBOOT_MEMORY_RESERVED               2
+#define MULTIBOOT_MEMORY_ACPI_RECLAIMABLE       3
+#define MULTIBOOT_MEMORY_NVS                    4
+#define MULTIBOOT_MEMORY_BADRAM                 5
  
 /* Hardware text mode color constants. */
 enum vga_color {
@@ -216,12 +222,44 @@ extern uint64_t g_PML4[512];
 extern uint64_t g_PDP[512];
 extern uint64_t g_PD[512];
 
-#define MULTIBOOT_MEMORY_AVAILABLE              1
-#define MULTIBOOT_MEMORY_RESERVED               2
-#define MULTIBOOT_MEMORY_ACPI_RECLAIMABLE       3
-#define MULTIBOOT_MEMORY_NVS                    4
-#define MULTIBOOT_MEMORY_BADRAM                 5
+uint16_t p4idx = 0;
+uint16_t p3idx = 0;
+uint16_t p2idx = 0;
+// run once for each found available space
+void map_mem(uint64_t base_addr, uint64_t length)
+{
+    if(base_addr == 0)
+    {
+        // don't map beginning because it sounds like a bad idea idk y
+        return;
+    }
+    
+    uint64_t pageSize = (2 * 1024 * 1024); // 2MB
+    uint64_t fittingPageCount = length / pageSize;
+    for(uint64_t i = 0; i < fittingPageCount; i++)
+    {
+        // Wat do if idx does not yet exist?
+        // if(!g_PDP3[p3idx])
+        // {
+        //     g_PDP3[p3idx] = new g_PD jotainjotain ...
+        // }
 
+        // y u no work
+        //g_PML4[p4idx][p3idx][p2idx] = base_addr + i * pageSize;
+
+        p2idx++;
+        if(p2idx >= 511)
+         {
+            p3idx++;
+            p2idx = 0;
+        }
+        if(p3idx >= 511)
+         {
+            p4idx++;
+            p3idx = 0;
+        }
+    }
+}
 
 extern "C" void kmain(uint64_t* multibootHeader)
 {
