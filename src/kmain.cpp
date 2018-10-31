@@ -251,21 +251,27 @@ extern "C" void kmain(const uint32_t* multibootHeader)
     terminal_writestring("\n buffer size\n");
     print_bitmap(multibootHeader[44]);
 
+    typedef struct multiboot_mmap_entry
+    {
+        uint32_t size;
+        uint64_t addr;
+        uint64_t len;
+        uint32_t type;
+    } multiboot_mmap_entry;
 
     // base addr of first block
-    /*jeejee*/ auto jerry = reinterpret_cast<uint32_t*>(multibootHeader[48]);
+    /*jeejee*/ auto jerry = reinterpret_cast<multiboot_mmap_entry*>(multibootHeader[48]);
     terminal_writestring("\n block size \n");
-    print_bitmap(*(jerry-1));
+    print_bitmap(jerry->size);
 
-    /*jeejee*/ auto jerry64 = reinterpret_cast<uint64_t*>(multibootHeader[48]);
     terminal_writestring("\n first block address \n");
-    print_bitmap(*(jerry64+1));
+    print_bitmap(jerry->addr);
 
     terminal_writestring("\n length of first block \n");
-    print_bitmap(*(jerry64+2));
+    print_bitmap(jerry->len);
 
     terminal_writestring("\n type of first block \n");
-    print_bitmap(*(jerry64+3));
+    print_bitmap(jerry->type);
 
     //terminal_writestring("\n second block address \n");
     //print_bitmap(*(jerry+3));
