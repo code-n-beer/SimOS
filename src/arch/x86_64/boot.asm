@@ -5,7 +5,7 @@ section .text
 bits 32
 start:
   mov esp, stack_top
-  mov edi, ebx ; move multiboot header to rdi
+  mov edi, ebx ; move multiboot header to edi
 
   call check_multiboot
   call check_cpuid
@@ -13,6 +13,8 @@ start:
 
   call set_up_page_tables
   call enable_paging
+
+  push ebx ; push multiboot headers to stack for mr. k'mayne to read
 
   lgdt [gdt64.pointer]
   jmp gdt64.code:long_mode_start

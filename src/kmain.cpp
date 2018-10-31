@@ -141,7 +141,7 @@ char nthdigit(int x, int n)
     }
     return (x % 10) + '0';
 }
- 
+
 void print_num(int num)
 {
     if(num < 10) {
@@ -196,11 +196,31 @@ void print_hex(T value)
     terminal_write(buf, sizeof(buf));
 }
 
+template<typename T>
+void print_bitmap(T value)
+{
+    static_assert(isIntegerType<T>, "pls print an integer");
+    static_assert(8 * sizeof(T) <= 32, "only up to 32 bit supported because always printing more than 32 is ugly :D");
+
+    char* n = "\n00000000000000000000000000000000\n";
+    uint8_t outBits = 32;
+    for(int i = 0; i < outBits; i++) { n[i] = '0';} // clean out old mess
+
+    uint32_t length = 8 * sizeof(T);
+    char buf[length];
+    T temp = value;
+    for(int i = 0; i < length; i++)
+    {
+        n[outBits - i] = (((value >> i) & 1) ? 1 : 0) + '0';
+    }
+    terminal_writestring(n);
+}
+
 extern uint64_t g_PML4[512];
 extern uint64_t g_PDP[512];
 extern uint64_t g_PD[512];
 
-extern "C" void kmain(void) 
+extern "C" void kmain(const uint32_t* multibootHeader)
 {
     /* Initialize terminal interface */
     terminal_initialize();
@@ -222,14 +242,28 @@ extern "C" void kmain(void)
         print_hex(g_PD[i]);
         terminal_writestring("\n");
     }
- 
- /*
-    for(int i = 0; i < 30; i++)
-    {
-        terminal_writestring("Hello, kernel World!\n");
-        print_num(i);
-    }
-    */
+
+    terminal_writestring("\n multiboot header flags\n");
+    // 0 is flags
+    print_bitmap(multibootHeader[0]);
+
+    // size of memory map buffer
+    terminal_writestring("\n buffer size\n");
+    print_bitmap(multibootHeader[44]);
+
+    // address of memory map buffer
+    terminal_writestring("\n address of buffer \n");
+    print_bitmap(multibootHeader[48]);
+
+
+    // base addr of first block
+    /*jeejee*/ auto jerry = reinterpret_cast<uint8_t*>(multibootHeader[48]);
+    terminal_writestring("\n first block address \n");
+    print_bitmap(*jerry);
+
+    terminal_writestring("\n length of first block \n");
+    print_bitmap(*(jerry++));
+
 }
 
 //extern "C" void kmain(const void* multibootHeader)
