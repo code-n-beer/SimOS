@@ -216,6 +216,13 @@ extern uint64_t g_PML4[512];
 extern uint64_t g_PDP[512];
 extern uint64_t g_PD[512];
 
+#define MULTIBOOT_MEMORY_AVAILABLE              1
+#define MULTIBOOT_MEMORY_RESERVED               2
+#define MULTIBOOT_MEMORY_ACPI_RECLAIMABLE       3
+#define MULTIBOOT_MEMORY_NVS                    4
+#define MULTIBOOT_MEMORY_BADRAM                 5
+
+
 extern "C" void kmain(uint64_t* multibootHeader)
 {
     /* Initialize terminal interface */
@@ -252,10 +259,10 @@ extern "C" void kmain(uint64_t* multibootHeader)
 
     typedef struct multiboot_mmap_entry
     {
-        uint64_t addr;
-        uint64_t len;
+        uint64_t base_addr;
+        uint64_t length;
         uint32_t type;
-        uint32_t zero;
+        uint32_t reserved_zero;
     } multiboot_mmap_entry;
 
     uint32_t* total_size = reinterpret_cast<uint32_t*>(multibootHeader);
@@ -279,49 +286,64 @@ extern "C" void kmain(uint64_t* multibootHeader)
             print_hex(t->type);
             terminal_writestring("\n tag size \n");
             print_hex(t->size);
+
+            terminal_writestring("\n entry_size and version \n");
+            uint32_t* entry_size = reinterpret_cast<uint32_t*>(t+1);
+            uint32_t* entry_version = entry_size + 1;
+            print_hex(*entry_size);
+            terminal_writestring("\n");
+            print_hex(*entry_version);
+            terminal_writestring("\n");
+
+            // entries start after entry_version
+            multiboot_mmap_entry* entry = reinterpret_cast<multiboot_mmap_entry*>(entry_version + 1);
+
+            int available = 0;
+            int reserved = 0;
+            int acpi_reclaimable = 0;
+            int nvs = 0;
+            int badram = 0;
+            for(int i = 0; i < t->size / (*entry_size); i++)
+            {
+                if (entry->type == MULTIBOOT_MEMORY_AVAILABLE)
+                {
+                    terminal_writestring("\n base_addr \n");
+                    print_hex(entry->base_addr);
+                    terminal_writestring("\n length \n");
+                    print_hex(entry->length);
+                }
+                //terminal_writestring("\n type \n");
+                //print_hex(entry->type);
+                //terminal_writestring("\n reserved zeroes \n");
+                //print_hex(entry->reserved_zero);
+
+                switch(entry->type)
+                {
+                    case MULTIBOOT_MEMORY_AVAILABLE: available++; break;
+                    case MULTIBOOT_MEMORY_ACPI_RECLAIMABLE: acpi_reclaimable++; break;
+                    case MULTIBOOT_MEMORY_BADRAM: badram++; break;
+                    case MULTIBOOT_MEMORY_NVS: nvs++; break;
+                    case MULTIBOOT_MEMORY_RESERVED: reserved++; break;
+                }
+
+                entry++;
+            }
+
+            //terminal_writestring("\n available \n");
+            //print_num(available);
+            //terminal_writestring("\n reserved \n");
+            //print_num(reserved);
+            //terminal_writestring("\n acpi_reclaimable \n");
+            //print_num(acpi_reclaimable);
+            //terminal_writestring("\n nvs \n");
+            //print_num(nvs);
+            //terminal_writestring("\n badram \n");
+            //print_num(badram);
+            
             //terminal_writestring("\n tag size padded \n");
             //print_hex(size_bytes);
         }
 
         tagp = tagp + size_bytes / sizeof(uint64_t);
     }
-
-    // base addr of first block
-    ///*jeejee*/ auto jerry = reinterpret_cast<multiboot_mmap_entry*>(multibootHeader[48/4]);
-    //terminal_writestring("\n block size \n");
-    //print_hex(jerry->size);
-
-    //terminal_writestring("\n first block address \n");
-    //print_hex(jerry->addr);
-
-    //terminal_writestring("\n length of first block \n");
-    //print_hex(jerry->len);
-
-    //terminal_writestring("\n type of first block \n");
-    //print_hex(jerry->type);
-
-
-    //terminal_writestring("\n second block address \n");
-    //print_bitmap(*(jerry+3));
-
-    //terminal_writestring("\n length of second block \n");
-    //print_bitmap(*(jerry+4));
-
-    //terminal_writestring("\n type of second block \n");
-    //print_bitmap(*(jerry+5));
 }
-
-//extern "C" void kmain(const void* multibootHeader)
-//{
-//    unsigned short* vgaBase = reinterpret_cast<unsigned short*>(0xb8000);
-//    const char ebin[] = "ebin";
-//
-//    for (auto line = 0; line < 10; line++) {
-//        for (auto i = 0; ebin[i] != 0; i++) {
-//            vgaBase[line * 80 + i] = 0x1f00 | ebin[i];
-//        }
-//    }
-//
-//    while (true);
-//}
-//
