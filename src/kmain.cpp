@@ -200,20 +200,16 @@ template<typename T>
 void print_bitmap(T value)
 {
     static_assert(isIntegerType<T>, "pls print an integer");
-    static_assert(8 * sizeof(T) <= 32, "only up to 32 bit supported because always printing more than 32 is ugly :D");
-
-    char* n = "\n00000000000000000000000000000000\n";
-    uint8_t outBits = 32;
-    for(int i = 0; i < outBits; i++) { n[i] = '0';} // clean out old mess
 
     uint32_t length = 8 * sizeof(T);
     char buf[length];
     T temp = value;
     for(int i = 0; i < length; i++)
     {
-        n[outBits - i] = (((value >> i) & 1) ? 1 : 0) + '0';
+        buf[length - 1 - i] = (((value >> i) & 1) ? 1 : 0) + '0';
     }
-    terminal_writestring(n);
+    terminal_write(buf, sizeof(buf));
+    terminal_writestring("\n");
 }
 
 extern uint64_t g_PML4[512];
@@ -247,23 +243,38 @@ extern "C" void kmain(const uint32_t* multibootHeader)
     // 0 is flags
     print_bitmap(multibootHeader[0]);
 
-    // size of memory map buffer
-    terminal_writestring("\n buffer size\n");
-    print_bitmap(multibootHeader[44]);
-
     // address of memory map buffer
     terminal_writestring("\n address of buffer \n");
     print_bitmap(multibootHeader[48]);
 
+    // size of memory map buffer
+    terminal_writestring("\n buffer size\n");
+    print_bitmap(multibootHeader[44]);
+
 
     // base addr of first block
-    /*jeejee*/ auto jerry = reinterpret_cast<uint8_t*>(multibootHeader[48]);
+    /*jeejee*/ auto jerry = reinterpret_cast<uint32_t*>(multibootHeader[48]);
+    terminal_writestring("\n block size \n");
+    print_bitmap(*(jerry-1));
+
+    /*jeejee*/ auto jerry64 = reinterpret_cast<uint64_t*>(multibootHeader[48]);
     terminal_writestring("\n first block address \n");
-    print_bitmap(*jerry);
+    print_bitmap(*(jerry64+1));
 
     terminal_writestring("\n length of first block \n");
-    print_bitmap(*(jerry++));
+    print_bitmap(*(jerry64+2));
 
+    terminal_writestring("\n type of first block \n");
+    print_bitmap(*(jerry64+3));
+
+    //terminal_writestring("\n second block address \n");
+    //print_bitmap(*(jerry+3));
+
+    //terminal_writestring("\n length of second block \n");
+    //print_bitmap(*(jerry+4));
+
+    //terminal_writestring("\n type of second block \n");
+    //print_bitmap(*(jerry+5));
 }
 
 //extern "C" void kmain(const void* multibootHeader)
