@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <multiboot2.h>
 
 /* Check if the compiler thinks we are targeting the wrong operating system. */
 #if defined(__linux__)
@@ -11,12 +12,6 @@
 #if !defined(__x86_64__)
 #error "This tutorial needs to be compiled with a ix86-elf compiler"
 #endif
-
-#define MULTIBOOT_MEMORY_AVAILABLE              1
-#define MULTIBOOT_MEMORY_RESERVED               2
-#define MULTIBOOT_MEMORY_ACPI_RECLAIMABLE       3
-#define MULTIBOOT_MEMORY_NVS                    4
-#define MULTIBOOT_MEMORY_BADRAM                 5
  
 /* Hardware text mode color constants. */
 enum vga_color {
