@@ -17,8 +17,8 @@ c_source_files := $(wildcard src/*.c)
 c_object_files := $(patsubst src/%.c, \
     build/%.o, $(c_source_files))
 
-CXXFLAGS += -g -ffreestanding -Wall -Wextra -std=gnu++17 -Iinclude/
-CFLAGS += -ffreestanding -Wall -Wextra -std=gnu11 -Iinclude/
+CXXFLAGS += -g -ffreestanding -Wall -Wextra -std=gnu++17 -Iinclude/ -mno-red-zone -mcmodel=kernel
+CFLAGS += -ffreestanding -Wall -Wextra -std=gnu11 -Iinclude/ -mno-red-zone -mcmodel=kernel
 
 .PHONY: all clean run iso kernel
 
@@ -43,7 +43,7 @@ $(iso): $(kernel) $(grub_cfg)
 	rm -r build/isofiles
 
 $(kernel): build_dir $(cpp_object_files) $(c_object_files) $(assembly_object_files) $(linker_script)
-	x86_64-elf-ld -n --gc-sections -T $(linker_script) -o $(kernel) \
+	x86_64-elf-ld -z max-page-size=0x1000 -T $(linker_script) -o $(kernel) \
 		$(assembly_object_files) $(cpp_object_files) $(c_object_files)
 
 build/%.o: src/%.cpp
