@@ -142,6 +142,7 @@ extern "C" void kmain(uint64_t* multibootHeader)
 
     uint64_t* virtualPML4 = (uint64_t*)((uintptr_t)g_PML4 + 0xFFFFFFFF80000000ULL);
 
+    printf("kmain is at %p\n", kmain);
     printf("PML4 is at: %p (%p virtual)\n", g_PML4, virtualPML4);
     printf("PML4[0] is: %016llx\n", g_PML4[0]);
     printf("vPML4[0] is: %016llx\n", virtualPML4[0]);
