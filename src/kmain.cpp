@@ -130,169 +130,22 @@ void _putchar(char c)
     terminal_putchar(c);
 }
 
-template<typename T>
-void print_bitmap(T value)
-{
-    uint32_t length = 8 * sizeof(T);
-    char buf[length + 1] = { 0 };
-    T temp = value;
-    for(int i = 0; i < length; i++)
-    {
-        buf[length - 1 - i] = (((value >> i) & 1) ? 1 : 0) + '0';
-    }
-    printf("%s\n", buf);
-}
-
 extern uint64_t g_PML4[512];
-extern uint64_t g_PDP[512];
-extern uint64_t g_PD[512];
-
-uint16_t p4idx = 0;
-uint16_t p3idx = 0;
-uint16_t p2idx = 0;
-// run once for each found available space
-void map_mem(uint64_t base_addr, uint64_t length)
-{
-    if(base_addr == 0)
-    {
-        // don't map beginning because it sounds like a bad idea idk y
-        return;
-    }
-    
-    uint64_t pageSize = (2 * 1024 * 1024); // 2MB
-    uint64_t fittingPageCount = length / pageSize;
-    for(uint64_t i = 0; i < fittingPageCount; i++)
-    {
-        // Wat do if idx does not yet exist?
-        // if(!g_PDP3[p3idx])
-        // {
-        //     g_PDP3[p3idx] = new g_PD jotainjotain ...
-        // }
-
-        // y u no work
-        //g_PML4[p4idx][p3idx][p2idx] = base_addr + i * pageSize;
-
-        p2idx++;
-        if(p2idx >= 511)
-         {
-            p3idx++;
-            p2idx = 0;
-        }
-        if(p3idx >= 511)
-         {
-            p4idx++;
-            p3idx = 0;
-        }
-    }
-}
+extern uint64_t g_highPDPT[512];
+extern uint64_t g_highPD[512];
+extern uint64_t g_lowPDPT[512];
+extern uint64_t g_lowPD[512];
 
 extern "C" void kmain(uint64_t* multibootHeader)
 {
-    /* Initialize terminal interface */
     terminal_initialize();
 
-    printf("\nPML4\n");
-    for (int i = 0; i < 8; i++) {
-        printf("%llx\n", g_PML4[i]);
-    }
+    uint64_t* virtualPML4 = (uint64_t*)((uintptr_t)g_PML4 + 0xFFFFFFFF80000000ULL);
 
-    printf("\nPDP\n");
-    for (int i = 0; i < 8; i++) {
-        printf("%llx\n", g_PDP[i]);
-    }
+    printf("PML4 is at: %p (%p virtual)\n", g_PML4, virtualPML4);
+    printf("PML4[0] is: %016llx\n", g_PML4[0]);
+    printf("vPML4[0] is: %016llx\n", virtualPML4[0]);
 
-    printf("\nPD\n");
-    for (int i = 0; i < 8; i++) {
-        printf("%llx\n", g_PD[i]);
-    }
-
-    printf("\n multiboot header flags\n");
-    // 0 is flags
-    print_bitmap(multibootHeader[0]);
-
-
-    typedef struct tag
-    {
-        uint32_t type;
-        uint32_t size;
-    } tag;
-
-    typedef struct multiboot_mmap_entry
-    {
-        uint64_t base_addr;
-        uint64_t length;
-        uint32_t type;
-        uint32_t reserved_zero;
-    } multiboot_mmap_entry;
-
-    uint32_t* total_size = reinterpret_cast<uint32_t*>(multibootHeader);
-    printf("\n total size of tags structure %llx\n", *total_size);
-    printf("\n reserved %llx\n", *(total_size + 1));
-
-    // tags start from second idx, first is u32 total size of tag structure + u32 reserved 
-    uint64_t* tagp = multibootHeader + 1;
-
-    while(tagp < multibootHeader + (*total_size) / sizeof(multibootHeader))
-    {
-        tag* t = reinterpret_cast<tag*>(tagp);
-
-        // pad size to 8 bytes
-        uint32_t size_bytes = ((t->size - 1) & ~0x7) + 0x8;
-
-        if(t->type == 0x6) {
-            printf("tag type %d\n", t->type);
-            printf("tag size %d\n", t->size);
-
-            uint32_t* entry_size = reinterpret_cast<uint32_t*>(t+1);
-            uint32_t* entry_version = entry_size + 1;
-            printf("entry_size and version: %d %d\n", *entry_size, *entry_version);
-
-            // entries start after entry_version
-            multiboot_mmap_entry* entry = reinterpret_cast<multiboot_mmap_entry*>(entry_version + 1);
-
-            int available = 0;
-            int reserved = 0;
-            int acpi_reclaimable = 0;
-            int nvs = 0;
-            int badram = 0;
-            for(int i = 0; i < t->size / (*entry_size); i++)
-            {
-                if (entry->type == MULTIBOOT_MEMORY_AVAILABLE)
-                {
-                    printf("base_addr %llx, length %llx\n", entry->base_addr, entry->length);
-                }
-                //terminal_writestring("\n type \n");
-                //print_hex(entry->type);
-                //terminal_writestring("\n reserved zeroes \n");
-                //print_hex(entry->reserved_zero);
-
-                switch(entry->type)
-                {
-                    case MULTIBOOT_MEMORY_AVAILABLE: available++; break;
-                    case MULTIBOOT_MEMORY_ACPI_RECLAIMABLE: acpi_reclaimable++; break;
-                    case MULTIBOOT_MEMORY_BADRAM: badram++; break;
-                    case MULTIBOOT_MEMORY_NVS: nvs++; break;
-                    case MULTIBOOT_MEMORY_RESERVED: reserved++; break;
-                }
-
-                entry++;
-            }
-
-            //terminal_writestring("\n available \n");
-            //print_num(available);
-            //terminal_writestring("\n reserved \n");
-            //print_num(reserved);
-            //terminal_writestring("\n acpi_reclaimable \n");
-            //print_num(acpi_reclaimable);
-            //terminal_writestring("\n nvs \n");
-            //print_num(nvs);
-            //terminal_writestring("\n badram \n");
-            //print_num(badram);
-            
-            //terminal_writestring("\n tag size padded \n");
-            //print_hex(size_bytes);
-        }
-
-        tagp = tagp + size_bytes / sizeof(uint64_t);
+    while (true) {
     }
 }

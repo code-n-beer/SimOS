@@ -19,6 +19,19 @@ header_start:
     dd 8    ; size
 header_end:
 
+; page table entry macros
+%define PRESENT     (1 << 0)
+%define WRITABLE    (1 << 1)
+%define HUGE        (1 << 7)
+%define PAGE_SIZE   0x200000 ; 2MiB
+
+%define PML4_IDX_FROM_ADDR(addr)  (((addr) >> 39) & 0x1FF)
+%define PDPT_IDX_FROM_ADDR(addr)  (((addr) >> 30) & 0x1FF)
+%define PD_IDX_FROM_ADDR(addr)    (((addr) >> 21) & 0x1FF)
+
+%define KERNEL_VIRTUAL_START    0xFFFFFFFF80400000
+%define KERNEL_PHYSICAL_START   0x0000000000400000
+
 section .text
 bits 32
 start:
@@ -44,30 +57,58 @@ error:
     mov byte  [0xb800a], al
     hlt
 
+; identity map the first gigabyte, eg. 0x00000000_00000000-0x00000000_40000000,
+; then map 0xFFFFFFFF_80000000-0xFFFFFFFF_C0000000 to the first 1GiB of physical memory
 set_up_page_tables:
-    ; map first P4 entry to P3 table
-    mov eax, g_PDP
-    or eax, 0b11 ; present + writable
-    mov [g_PML4], eax
+    ; map appropriate PML4 entry for low PDPT
+    mov eax, g_lowPDPT
+    or eax, PRESENT | WRITABLE
+    mov [g_PML4 + PML4_IDX_FROM_ADDR(KERNEL_PHYSICAL_START) * 8], eax
 
-    ; map first P3 entry to P2 table
-    mov eax, g_PD
-    or eax, 0b11 ; present + writable
-    mov [g_PDP], eax
+    ; map appropriate PML4 entry for high PDPT
+    mov eax, g_highPDPT
+    or eax, PRESENT | WRITABLE
+    mov [g_PML4 + PML4_IDX_FROM_ADDR(KERNEL_VIRTUAL_START) * 8], eax
 
-    ; map each P2 entry to a huge 2MiB page
+    ; map low PDPT entry to low PD
+    mov eax, g_lowPD
+    or eax, PRESENT | WRITABLE
+    mov [g_lowPDPT + PDPT_IDX_FROM_ADDR(KERNEL_PHYSICAL_START) * 8], eax
+
+    ; map high PDPT entry to high PD
+    mov eax, g_highPD
+    or eax, PRESENT | WRITABLE
+    mov [g_highPDPT + PDPT_IDX_FROM_ADDR(KERNEL_VIRTUAL_START) * 8], eax
+
+
+    ; map each low PD entry to a huge 2MiB page
     mov ecx, 0         ; counter variable
 
-.map_g_PD:
-    ; map ecx-th P2 entry to a huge page that starts at address 2MiB*ecx
-    mov eax, 0x200000  ; 2MiB
+.map_lowPD:
+    ; map ecx-th PD entry to a huge page that starts at address 2MiB*ecx
+    mov eax, PAGE_SIZE
     mul ecx            ; start address of ecx-th page
-    or eax, 0b10000011 ; present + writable + huge
-    mov [g_PD + ecx * 8], eax ; map ecx-th entry
+    or eax, HUGE | PRESENT | WRITABLE
+    mov [g_lowPD + ecx * 8], eax ; map ecx-th entry
 
     inc ecx            ; increase counter
     cmp ecx, 512       ; if counter == 512, the whole P2 table is mapped
-    jne .map_g_PD  ; else map the next entry
+    jne .map_lowPD  ; else map the next entry
+
+
+    ; map each high PD entry to a huge 2MiB page
+    mov ecx, 0         ; counter variable
+
+.map_highPD:
+    ; map ecx-th PD entry to a huge page that starts at address 2MiB*ecx
+    mov eax, PAGE_SIZE
+    mul ecx            ; start address of ecx-th page
+    or eax, HUGE | PRESENT | WRITABLE
+    mov [g_highPD + ecx * 8], eax ; map ecx-th entry
+
+    inc ecx            ; increase counter
+    cmp ecx, 512       ; if counter == 512, the whole P2 table is mapped
+    jne .map_highPD  ; else map the next entry
 
     ret
 
@@ -118,7 +159,7 @@ check_cpuid:
 check_long_mode:
     ; test if extended processor info in available
     mov eax, 0x80000000    ; implicit argument for cpuid
-    cpuid                  ; get highest supported argument
+    cpuid                  ; get lowest supported argument
     cmp eax, 0x80000001    ; it needs to be at least 0x80000001
     jb .no_long_mode       ; if it's less, the CPU is too old for long mode
 
@@ -168,17 +209,23 @@ gdt64:
 section .bss
 
 global g_PML4
-global g_PDP
-global g_PD
+global g_lowPDPT
+global g_lowPD
+global g_highPDPT
+global g_highPD
 
 align 4096
 g_PML4:
     resb 4096
-g_PDP:
+g_highPDPT:
     resb 4096
-g_PD:
+g_highPD:
+    resb 4096
+g_lowPDPT:
+    resb 4096
+g_lowPD:
     resb 4096
 
 stack_bottom:
-  resb 4096 * 4
+    resb 4096 * 4
 stack_top:
