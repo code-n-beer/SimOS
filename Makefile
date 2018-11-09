@@ -13,7 +13,12 @@ cpp_source_files := $(wildcard src/*.cpp)
 cpp_object_files := $(patsubst src/%.cpp, \
     build/%.o, $(cpp_source_files))
 
+c_source_files := $(wildcard src/*.c)
+c_object_files := $(patsubst src/%.c, \
+    build/%.o, $(c_source_files))
+
 CXXFLAGS += -g -ffreestanding -Wall -Wextra -std=gnu++17 -Iinclude/
+CFLAGS += -ffreestanding -Wall -Wextra -std=gnu11 -Iinclude/
 
 .PHONY: all clean run iso kernel
 
@@ -37,13 +42,17 @@ $(iso): $(kernel) $(grub_cfg)
 	grub-mkrescue -o $(iso) build/isofiles
 	rm -r build/isofiles
 
-$(kernel): build_dir $(cpp_object_files) $(assembly_object_files) $(linker_script)
+$(kernel): build_dir $(cpp_object_files) $(c_object_files) $(assembly_object_files) $(linker_script)
 	x86_64-elf-ld -n --gc-sections -T $(linker_script) -o $(kernel) \
-		$(assembly_object_files) $(cpp_object_files)
+		$(assembly_object_files) $(cpp_object_files) $(c_object_files)
 
 build/%.o: src/%.cpp
 	@mkdir -p $(shell dirname $@)
 	x86_64-elf-g++ $(CXXFLAGS) -c $< -o $@
+
+build/%.o: src/%.c
+	@mkdir -p $(shell dirname $@)
+	x86_64-elf-gcc $(CFLAGS) -c $< -o $@
 
 build/arch/$(arch)/%.o: src/arch/$(arch)/%.asm
 	@mkdir -p $(shell dirname $@)

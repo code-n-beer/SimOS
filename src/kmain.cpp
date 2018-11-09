@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <multiboot2.h>
+#include <printf.h>
 
 /* Check if the compiler thinks we are targeting the wrong operating system. */
 #if defined(__linux__)
@@ -124,93 +125,22 @@ void terminal_putchar(char c)
     }
 }
 
-void terminal_write(const char* data, size_t size) 
+void _putchar(char c)
 {
-    for (size_t i = 0; i < size; i++)
-        terminal_putchar(data[i]);
-}
- 
-void terminal_writestring(const char* data) 
-{
-    terminal_write(data, strlen(data));
-}
-
-char nthdigit(int x, int n)
-{
-    while (n--) {
-        x /= 10;
-    }
-    return (x % 10) + '0';
-}
-
-void print_num(int num)
-{
-    if(num < 10) {
-        char* n = "1\n";
-        n[0] = num + '0';
-        return terminal_writestring(n);
-    }
-
-    int benis = num;
-    unsigned int numDigits = 0;
-    do {
-        ++numDigits;
-        benis /= 10;
-    } while(benis);
-    if(numDigits > 2) 
-    {
-        return terminal_writestring("over 2 digit numbers not supported :D kthx bye\n");
-    }
-
-    char* n = "00\n";
-    n[0] = num / 10 + '0';
-    n[1] = num % 10 + '0';
-    terminal_writestring(n);
-}
-
-template<typename T> constexpr bool isIntegerType = false;
-
-template<> constexpr bool isIntegerType<int8_t> = true;
-template<> constexpr bool isIntegerType<int16_t> = true;
-template<> constexpr bool isIntegerType<int32_t> = true;
-template<> constexpr bool isIntegerType<int64_t> = true;
-template<> constexpr bool isIntegerType<uint8_t> = true;
-template<> constexpr bool isIntegerType<uint16_t> = true;
-template<> constexpr bool isIntegerType<uint32_t> = true;
-template<> constexpr bool isIntegerType<uint64_t> = true;
-
-const char hexDigits[] = "0123456789abcdef";
-
-template<typename T>
-void print_hex(T value)
-{
-    static_assert(isIntegerType<T>, "pls print an integer");
-    char buf[2 * sizeof(T)];
-
-    T temp = value;
-
-    for (int i = sizeof(buf) - 1; i >= 0; i--) {
-        buf[i] = hexDigits[temp & 0xF];
-        temp >>= 4;
-    }
-
-    terminal_write(buf, sizeof(buf));
+    terminal_putchar(c);
 }
 
 template<typename T>
 void print_bitmap(T value)
 {
-    static_assert(isIntegerType<T>, "pls print an integer");
-
     uint32_t length = 8 * sizeof(T);
-    char buf[length];
+    char buf[length + 1] = { 0 };
     T temp = value;
     for(int i = 0; i < length; i++)
     {
         buf[length - 1 - i] = (((value >> i) & 1) ? 1 : 0) + '0';
     }
-    terminal_write(buf, sizeof(buf));
-    terminal_writestring("\n");
+    printf("%s\n", buf);
 }
 
 extern uint64_t g_PML4[512];
@@ -261,25 +191,22 @@ extern "C" void kmain(uint64_t* multibootHeader)
     /* Initialize terminal interface */
     terminal_initialize();
 
-    terminal_writestring("\nPML4\n");
+    printf("\nPML4\n");
     for (int i = 0; i < 8; i++) {
-        print_hex(g_PML4[i]);
-        terminal_writestring("\n");
+        printf("%llx\n", g_PML4[i]);
     }
 
-    terminal_writestring("\nPDP\n");
+    printf("\nPDP\n");
     for (int i = 0; i < 8; i++) {
-        print_hex(g_PDP[i]);
-        terminal_writestring("\n");
+        printf("%llx\n", g_PDP[i]);
     }
 
-    terminal_writestring("\nPD\n");
+    printf("\nPD\n");
     for (int i = 0; i < 8; i++) {
-        print_hex(g_PD[i]);
-        terminal_writestring("\n");
+        printf("%llx\n", g_PD[i]);
     }
 
-    terminal_writestring("\n multiboot header flags\n");
+    printf("\n multiboot header flags\n");
     // 0 is flags
     print_bitmap(multibootHeader[0]);
 
@@ -299,10 +226,8 @@ extern "C" void kmain(uint64_t* multibootHeader)
     } multiboot_mmap_entry;
 
     uint32_t* total_size = reinterpret_cast<uint32_t*>(multibootHeader);
-    terminal_writestring("\n total size of tags structure \n");
-    print_hex(*total_size);
-    terminal_writestring("\n reserved \n");
-    print_hex(*(total_size+1));
+    printf("\n total size of tags structure %llx\n", *total_size);
+    printf("\n reserved %llx\n", *(total_size + 1));
 
     // tags start from second idx, first is u32 total size of tag structure + u32 reserved 
     uint64_t* tagp = multibootHeader + 1;
@@ -315,18 +240,12 @@ extern "C" void kmain(uint64_t* multibootHeader)
         uint32_t size_bytes = ((t->size - 1) & ~0x7) + 0x8;
 
         if(t->type == 0x6) {
-            terminal_writestring("\n tag type \n");
-            print_hex(t->type);
-            terminal_writestring("\n tag size \n");
-            print_hex(t->size);
+            printf("tag type %d\n", t->type);
+            printf("tag size %d\n", t->size);
 
-            terminal_writestring("\n entry_size and version \n");
             uint32_t* entry_size = reinterpret_cast<uint32_t*>(t+1);
             uint32_t* entry_version = entry_size + 1;
-            print_hex(*entry_size);
-            terminal_writestring("\n");
-            print_hex(*entry_version);
-            terminal_writestring("\n");
+            printf("entry_size and version: %d %d\n", *entry_size, *entry_version);
 
             // entries start after entry_version
             multiboot_mmap_entry* entry = reinterpret_cast<multiboot_mmap_entry*>(entry_version + 1);
@@ -340,10 +259,7 @@ extern "C" void kmain(uint64_t* multibootHeader)
             {
                 if (entry->type == MULTIBOOT_MEMORY_AVAILABLE)
                 {
-                    terminal_writestring("\n base_addr \n");
-                    print_hex(entry->base_addr);
-                    terminal_writestring("\n length \n");
-                    print_hex(entry->length);
+                    printf("base_addr %llx, length %llx\n", entry->base_addr, entry->length);
                 }
                 //terminal_writestring("\n type \n");
                 //print_hex(entry->type);
