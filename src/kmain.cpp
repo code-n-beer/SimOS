@@ -19,23 +19,13 @@ extern "C" void kmain(uint64_t* multibootHeader)
 {
     console::init();
 
-    uint64_t* virtualPML4 = (uint64_t*)(0xFFFFFFFFFFE00000ULL);
-    auto p = 0xFFFFFFFF80400000ULL;
-    auto q0 = PML4_IDX_FROM_ADDR(p);
-    auto q1 = PDPT_IDX_FROM_ADDR(p);
-    auto q2 = PD_IDX_FROM_ADDR(p);
-    
-    printf("ptr:\t%016llx\n", p);
-    printf("pml4:\t%016llx\n", q0);
-    printf("pdpt:\t%016llx\n", q1);
-    printf("pd:\t%016llx\n", q2);
-    printf("\n\n");
+    //uint64_t* virtualPML4 = (uint64_t*)(0xFFFFFFFFFFE00000ULL);
+    uint64_t* virtualPML4 = (uint64_t*)(0xFFFFFFFFFFFFF000ULL);
 
-    printf("kmain is at:\t%p\n", kmain);
-    printf("PML4 is at:\t%p (%p virtual)\n", g_PML4, virtualPML4);
-    printf("PML4[0] is:\t%016llx\n", g_PML4[0]);
-    printf("vPML4[0] is:\t%016llx\n", virtualPML4[0]);
-    printf("PML4[511] is:\t%016llx\n", g_PML4[511]);
+    printf("PML4 dump:\n\n");
+    for (int i = 0; i < 512; i++) {
+        printf("PML4[%d]: %016llx\n", i, virtualPML4[i]);
+    }
     
     while (true) {
     }

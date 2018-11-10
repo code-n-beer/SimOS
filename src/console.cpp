@@ -66,6 +66,30 @@ void scrollSingleLine()
     );
 }
 
+void moveByOffset(size_t xOff, size_t yOff)
+{
+    if (x + xOff >= CONSOLE_WIDTH) {
+        x = 0;
+        yOff++;
+    } else {
+        x += xOff;
+    }
+
+    if (yOff > 0) {
+        x = 0;
+    }
+
+    if (y + yOff >= CONSOLE_HEIGHT) {
+        y = CONSOLE_HEIGHT - 1;
+
+        while (yOff-- > 0) {
+            scrollSingleLine();
+        }
+    } else {
+        y += yOff;
+    }
+}
+
 void incrementPosition(bool column, bool row)
 {
     if (!column && !row) {
@@ -93,18 +117,21 @@ void incrementPosition(bool column, bool row)
 void putChar(char c)
 {
     if (c == '\n') {
-        incrementPosition(false, true);
+        //incrementPosition(false, true);
+        moveByOffset(0, 1);
     } else if (c == '\t') {
         auto nextX = (x & ~7) + 8;
         if (nextX >= CONSOLE_WIDTH) {
-            incrementPosition(false, true);
+            //incrementPosition(false, true);
+            moveByOffset(0, 1);
         } else {
             x = nextX;
         }
     } else {
         uint16_t value = (uint16_t(background) << 12) | (uint16_t(foreground) << 8) | uint8_t(c);
         vgaBuffer->at(y * CONSOLE_WIDTH + x) = value;
-        incrementPosition(true, false);
+        //incrementPosition(true, false);
+        moveByOffset(1, 0);
     }
 }
 
