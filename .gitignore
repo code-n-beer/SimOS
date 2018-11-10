@@ -1,3 +1,5 @@
 *.o
 build/
 target/
+.vscode/
+
