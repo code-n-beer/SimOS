@@ -11,6 +11,7 @@ long_mode_start:
     mov fs, ax
     mov gs, ax
 
+    add rsp, 0xffffffff80000000 ; adjust stack pointer to the virtual address
     extern kmain
     call kmain
 

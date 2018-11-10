@@ -60,6 +60,7 @@ error:
 ; identity map the first gigabyte, eg. 0x00000000_00000000-0x00000000_40000000,
 ; then map 0xFFFFFFFF_80000000-0xFFFFFFFF_C0000000 to the first 1GiB of physical memory
 set_up_page_tables:
+
     ; map appropriate PML4 entry for low PDPT
     mov eax, g_lowPDPT
     or eax, PRESENT | WRITABLE
@@ -109,6 +110,16 @@ set_up_page_tables:
     inc ecx            ; increase counter
     cmp ecx, 512       ; if counter == 512, the whole P2 table is mapped
     jne .map_highPD  ; else map the next entry
+
+    ; map last entry of PML4 to PML4 itself for recursive pagetable mapping
+    mov eax, g_PML4
+    or eax, WRITABLE | PRESENT
+    mov [g_PML4 + (511 * 8)], eax
+
+    ; because the PML4 is used as the PDPT for high addresses, map the 510th entry to the high PD
+    mov eax, g_highPD
+    or eax, WRITABLE | PRESENT
+    mov [g_PML4 + PDPT_IDX_FROM_ADDR(KERNEL_VIRTUAL_START) * 8], eax
 
     ret
 
