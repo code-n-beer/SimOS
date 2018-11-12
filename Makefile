@@ -1,59 +1,64 @@
-arch ?= x86_64
-kernel := build/kernel-$(arch).bin
-iso := build/os-$(arch).iso
-target ?= ${arch}-simos
+ARCH ?= x86_64
 
-linker_script := src/arch/$(arch)/linker.ld
-grub_cfg := src/arch/$(arch)/grub.cfg
-assembly_source_files := $(wildcard src/arch/$(arch)/*.asm)
-assembly_object_files := $(patsubst src/arch/$(arch)/%.asm, \
-    build/arch/$(arch)/%.o, $(assembly_source_files))
+CXX := $(ARCH)-elf-g++
+CC := $(ARCH)-elf-gcc
+LD := $(ARCH)-elf-ld
 
-cpp_source_files := $(wildcard src/*.cpp)
-cpp_object_files := $(patsubst src/%.cpp, \
-    build/%.o, $(cpp_source_files))
+KERNEL := build/kernel-$(ARCH).bin
+ISO := build/os-$(ARCH).iso
 
-c_source_files := $(wildcard src/*.c)
-c_object_files := $(patsubst src/%.c, \
-    build/%.o, $(c_source_files))
+LINKER_SCRIPT := src/arch/$(ARCH)/linker.ld
+GRUB_CFG := src/arch/$(ARCH)/grub.cfg
 
-CXXFLAGS += -g -ffreestanding -Wall -Wextra -std=gnu++17 -Iinclude/ -mno-red-zone -mcmodel=kernel
-CFLAGS += -ffreestanding -Wall -Wextra -std=gnu11 -Iinclude/ -mno-red-zone -mcmodel=kernel
+ASM_SRCS := $(wildcard src/arch/$(ARCH)/*.asm)
+ASM_OBJS := $(patsubst src/arch/$(ARCH)/%.asm, build/arch/$(ARCH)/%.o, $(ASM_SRCS))
+
+CXX_SRCS := $(wildcard src/*.cpp)
+CXX_OBJS := $(patsubst src/%.cpp, build/%.o, $(CXX_SRCS))
+
+C_SRCS := $(wildcard src/*.c)
+C_OBJS := $(patsubst src/%.c, build/%.o, $(C_SRCS))
+
+ALL_OBJS := $(CXX_OBJS) $(C_OBJS) $(ASM_OBJS)
+
+COMMON_CFLAGS := -g -ffreestanding -Wall -Wextra -Iinclude/ -mno-red-zone -mcmodel=kernel
+CXXFLAGS += $(COMMON_CFLAGS) -std=gnu++17
+CFLAGS += $(COMMON_CFLAGS) -std=gnu11
+LDFLAGS += -z max-page-size=0x1000
 
 .PHONY: all clean run iso kernel
 
-all: $(kernel)
+all: $(KERNEL)
 
 clean:
 	rm -rf build
 
-run: $(iso)
-	qemu-system-x86_64 -m 1G -cdrom $(iso)
+run: $(ISO)
+	qemu-system-x86_64 -m 1G -cdrom $(ISO)
 
-iso: $(iso)
+iso: $(ISO)
 
 build_dir:
 	@mkdir -p build
 
-$(iso): $(kernel) $(grub_cfg)
+$(ISO): $(KERNEL) $(GRUB_CFG)
 	@mkdir -p build/isofiles/boot/grub
-	cp $(kernel) build/isofiles/boot/kernel.bin
-	cp $(grub_cfg) build/isofiles/boot/grub
-	grub-mkrescue -o $(iso) build/isofiles
+	cp $(KERNEL) build/isofiles/boot/kernel.bin
+	cp $(GRUB_CFG) build/isofiles/boot/grub
+	grub-mkrescue -o $(ISO) build/isofiles
 	rm -r build/isofiles
 
-$(kernel): build_dir $(cpp_object_files) $(c_object_files) $(assembly_object_files) $(linker_script)
-	x86_64-elf-ld -z max-page-size=0x1000 -T $(linker_script) -o $(kernel) \
-		$(assembly_object_files) $(cpp_object_files) $(c_object_files)
+$(KERNEL): build_dir $(ALL_OBJS) $(LINKER_SCRIPT)
+	$(LD) $(LDFLAGS) -T $(LINKER_SCRIPT) -o $(KERNEL) $(ALL_OBJS)
 
 build/%.o: src/%.cpp
 	@mkdir -p $(shell dirname $@)
-	x86_64-elf-g++ $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 build/%.o: src/%.c
 	@mkdir -p $(shell dirname $@)
-	x86_64-elf-gcc $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
-build/arch/$(arch)/%.o: src/arch/$(arch)/%.asm
+build/arch/$(ARCH)/%.o: src/arch/$(ARCH)/%.asm
 	@mkdir -p $(shell dirname $@)
 	nasm -felf64 $< -o $@
