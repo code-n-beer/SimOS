@@ -1,5 +1,9 @@
 global long_mode_start
 
+extern kmain
+extern _init
+extern _fini
+
 section .text
 bits 64
 long_mode_start:
@@ -12,7 +16,9 @@ long_mode_start:
     mov gs, ax
 
     add rsp, 0xffffffff80000000 ; adjust stack pointer to the virtual address
-    extern kmain
+
+    call _init
     call kmain
+    call _fini
 
     hlt

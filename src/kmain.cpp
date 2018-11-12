@@ -53,6 +53,14 @@ PhysicalAddress virtualToPhysical(void* ptr)
     return result;
 }
 
+struct Hehebin
+{
+    int i;
+    Hehebin(int x = 1337) : i(x) {}
+};
+
+Hehebin heh;
+
 extern "C" void kmain(uint64_t* multibootHeader)
 {
     console::init();
@@ -67,6 +75,10 @@ extern "C" void kmain(uint64_t* multibootHeader)
     }
     printf("kmain virtual:\t%016llx\n", (uint64_t)kmain);
     printf("kmain physical:\t%016llx\n", virtualToPhysical((void*)kmain));
+
+    Hehebin ebin(666);
+    printf("heh: %d\n", heh.i);
+    printf("ebin: %d\n", ebin.i);
     
     while (true) {
     }
