@@ -1,7 +1,8 @@
+#include <kernel.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <multiboot2.h>
+#include <multiboot.h>
 #include <printf.h>
 #include <console.h>
 
@@ -53,32 +54,26 @@ PhysicalAddress virtualToPhysical(void* ptr)
     return result;
 }
 
-struct Hehebin
+void dumpMultibootInfo(MultibootBasicInfo* info)
 {
-    int i;
-    Hehebin(int x = 1337) : i(x) {}
-};
+    printf("%x, %x\n", info->totalSize, info->reserved);
+    
+    for (const auto& tag : info) {
+        printf("Tag: %d\tsize: %d\taddr: %p\n", tag.type, tag.size, &tag);
+    }
+}
 
-Hehebin heh;
-
-extern "C" void kmain(uint64_t* multibootHeader)
+extern "C" void kmain(MultibootBasicInfo* basicInfo)
 {
     console::init();
 
-    //uint64_t* virtualPML4 = (uint64_t*)(0xFFFFFFFFFFE00000ULL);
     uint64_t* virtualPML4 = (uint64_t*)(0xFFFF'FFFF'FFFF'F000ULL);
-    //ASSERT(false);
 
-    printf("PML4 dump:\n\n");
+    /*printf("PML4 dump:\n\n");
     for (int i = 0; i < 512; i++) {
         printf("PML4[%d]: %016llx\n", i, virtualPML4[i]);
-    }
-    printf("kmain virtual:\t%016llx\n", (uint64_t)kmain);
-    printf("kmain physical:\t%016llx\n", virtualToPhysical((void*)kmain));
-
-    Hehebin ebin(666);
-    printf("heh: %d\n", heh.i);
-    printf("ebin: %d\n", ebin.i);
+    }*/
+    dumpMultibootInfo(basicInfo);
     
     while (true) {
     }
