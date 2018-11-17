@@ -60,6 +60,17 @@ void dumpMultibootInfo(MultibootBasicInfo* info)
     
     for (const auto& tag : info) {
         printf("Tag: %d\tsize: %d\taddr: %p\n", tag.type, tag.size, &tag);
+        if (tag.type == TagType::Mmap) {
+            printf("Memory map:\n");
+            auto& mmapTag = static_cast<const MmapTag&>(tag);
+            ASSERT(mmapTag.entrySize == sizeof(MmapEntry));
+
+            auto numEntries = (mmapTag.size - sizeof(MmapTag)) / mmapTag.entrySize;
+            for (uint32_t i = 0; i < numEntries; i++) {
+                const auto& entry = mmapTag.entries[i];
+                printf("\taddr: %016llx, len: %016llx, type: %d\n", entry.addr, entry.len, entry.type);
+            }
+        }
     }
 }
 
@@ -69,12 +80,7 @@ extern "C" void kmain(MultibootBasicInfo* basicInfo)
 
     uint64_t* virtualPML4 = (uint64_t*)(0xFFFF'FFFF'FFFF'F000ULL);
 
-    /*printf("PML4 dump:\n\n");
-    for (int i = 0; i < 512; i++) {
-        printf("PML4[%d]: %016llx\n", i, virtualPML4[i]);
-    }*/
     dumpMultibootInfo(basicInfo);
     
-    while (true) {
-    }
+    __asm__("hlt");
 }
