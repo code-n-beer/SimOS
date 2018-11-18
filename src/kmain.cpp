@@ -29,29 +29,30 @@ using PhysicalAddress = uintptr_t;
 PhysicalAddress virtualToPhysical(void* ptr)
 {
     auto addr = reinterpret_cast<uintptr_t>(ptr);
+    
     auto pml4idx = PML4_IDX_FROM_ADDR(addr);
     auto pdptidx = PDPT_IDX_FROM_ADDR(addr);
     auto pdidx = PD_IDX_FROM_ADDR(addr);
 
-    auto pml4 = reinterpret_cast<const uintptr_t*>(0xffff'ffff'ffff'f000ull + 8 * pml4idx);
-    //printf("pml4idx: %lld (%llx)\n", pml4idx, *pml4);
-    if (!(*pml4 & MMU_FLAG_PRESENT)) {
+    auto pml4 = reinterpret_cast<const uint64_t*>(0xffff'ffff'ffff'f000ull);
+    //printf("pml4idx: %lld (%llx)\n", pml4idx, pml4[pml4idx]);
+    if (!(pml4[pml4idx] & MMU_FLAG_PRESENT)) {
         return 0;
     }
 
-    auto pdpt = reinterpret_cast<const uintptr_t*>(0xffff'ffff'ffe0'0000ull + 0x1000ull * pml4idx);
-    //printf("pdptidx: %lld (%llx)\n", pdptidx, *pdpt);
-    if (!(*pdpt & MMU_FLAG_PRESENT)) {
+    auto pdpt = reinterpret_cast<const uint64_t*>(0xffff'ffff'ffe0'0000ull + 0x1000ull * pml4idx);
+    //printf("pdptidx: %lld (%llx)\n", pdptidx, pdpt[pdptidx]);
+    if (!(pdpt[pdptidx] & MMU_FLAG_PRESENT)) {
         return 0;
     }
 
     auto pd = reinterpret_cast<const uintptr_t*>(0xffff'ffff'c000'0000ull + 0x20'0000ull * pml4idx + 0x1000ull * pdptidx);
-    //printf("pdidx: %lld (%llx)\n", pdidx, *pd);
-    if (!(*pd & MMU_FLAG_PRESENT)) {
+    //printf("pdidx: %lld (%llx)\n", pdidx, pd[pdidx]);
+    if (!(pd[pdidx] & MMU_FLAG_PRESENT)) {
         return 0;
     }
 
-    PhysicalAddress result = (*pd & (0x3fff'ffffull << 21)) | (addr & 0xf'ffffull);
+    PhysicalAddress result = (pd[pdidx] & (0x3fff'ffffull << 21)) | (addr & 0xf'ffffull);
     return result;
 }
 
@@ -132,29 +133,33 @@ void mapPhysical(PhysicalAddress physAddr, void* virtAddr, size_t size, uint64_t
     // Align to page size
     size = ((size - 1) & ~(PAGE_SIZE - 1)) + PAGE_SIZE;
 
-    auto addr = reinterpret_cast<uintptr_t>(virtAddr);
+    auto addr = reinterpret_cast<uint64_t>(virtAddr);
 
     while (size) {
         auto pml4idx = PML4_IDX_FROM_ADDR(addr);
         auto pdptidx = PDPT_IDX_FROM_ADDR(addr);
         auto pdidx = PD_IDX_FROM_ADDR(addr);
 
-        auto pml4 = reinterpret_cast<uint64_t*>(0xffff'ffff'ffff'f000ull + 8 * pml4idx);
-        if (!(*pml4 & Mmu_Present)) {
-            printf("pml4 index %lld not present!\n", pml4idx);
+        auto pml4 = reinterpret_cast<uint64_t*>(0xffff'ffff'ffff'f000ull);
+        printf("pml4idx: %lld (%llx)\n", pml4idx, pml4[pml4idx]);
+        if (!(pml4[pml4idx] & MMU_FLAG_PRESENT)) {
             return;
         }
 
         auto pdpt = reinterpret_cast<uint64_t*>(0xffff'ffff'ffe0'0000ull + 0x1000ull * pml4idx);
-        if (!(*pdpt & Mmu_Present)) {
-            printf("pdpt index %lld not present!\n", pdptidx);
+        printf("pdptidx: %lld (%llx)\n", pdptidx, pdpt[pdptidx]);
+        if (!(pdpt[pdptidx] & MMU_FLAG_PRESENT)) {
             return;
         }
 
         auto pd = reinterpret_cast<uint64_t*>(0xffff'ffff'c000'0000ull + 0x20'0000ull * pml4idx + 0x1000ull * pdptidx);
+        printf("pdidx: %lld (%llx)\n", pdidx, pd[pdidx]);
+        if (!(pd[pdidx] & MMU_FLAG_PRESENT)) {
+            return;
+        }
 
         auto pde = (physAddr & (0x3fff'ffffull << 21)) | Mmu_Present | Mmu_PageSize | flags;
-        printf("pde: %016llx\n", pde);
+        pd[pdidx] = pde;
 
         addr += PAGE_SIZE;
         physAddr += PAGE_SIZE;
@@ -168,12 +173,16 @@ extern "C" void kmain(const MultibootBasicInfo* basicInfo)
     // 0000'7ffd'8c79'd000
     uint64_t* virtualPML4 = (uint64_t*)(0xFFFF'FFFF'FFFF'F000ULL);
 
-    //void* p = (void*)(0xffff'ffff'0000'0000ull);
-    void* p = (void*)(0xffff'ffff'0000'0000ull);
+    auto p = (uint64_t*)(0xffff'ffff'8000'0000ull);
+    auto p2 = (uint64_t*)(0xffff'ffff'8040'a000ull);
     auto x = (uint64_t)p;
-    //mapPhysical(0x20'0000ull, p, 1 * PAGE_SIZE, Mmu_ReadWrite);
+    mapPhysical(0x40'0000ull, (void*)(0xffff'ffff'8000'0000ull), PAGE_SIZE, Mmu_ReadWrite);
     printf("virt: %016llx, phys: %016llx\n", (uint64_t)p, virtualToPhysical(p));
     printf("virt: ffffffff8040a000, phys: %016llx\n", virtualToPhysical((void*)0xffff'ffff'8040'a000ull));
+
+    p = (uint64_t*)(0xffff'ffff'8000'a000ull);
+    printf("\n%p: %016llx\n%p: %016llx\n\n:3\n", p, *p, p2, *p2);
+
     dumpMultibootInfo(basicInfo);
     
     __asm__("hlt");
