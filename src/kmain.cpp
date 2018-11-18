@@ -91,7 +91,7 @@ void dumpTag(const ElfSectionsTag& tag)
         printf("%s (addr: %016llx, size: %llx)\n", strings + section.sh_name, section.sh_addr, section.sh_size);
         /*printf("  sh_name:\t%s\n", strings + section.sh_name);
         printf("  sh_type:\t%08x\n", section.sh_type);
-        printf("  sh_flags:\t%016llx\n", section.sh_flags);
+        printf("  sh_flags:\t%08x\n", section.sh_flags);
         printf("  sh_addr:\t%016llx\n", section.sh_addr);
         printf("  sh_offset:\t%016llx\n", section.sh_offset);
         printf("  sh_size:\t%016llx\n", section.sh_size);
