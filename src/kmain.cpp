@@ -5,6 +5,7 @@
 #include <multiboot.h>
 #include <printf.h>
 #include <console.h>
+#include <elf.h>
 
 #define PML4_IDX_FROM_ADDR(addr)  (((addr) >> 39) & 0x1FF)
 #define PDPT_IDX_FROM_ADDR(addr)  (((addr) >> 30) & 0x1FF)
@@ -66,12 +67,50 @@ void dumpTag(const MmapTag& mmapTag)
     }
 }
 
+void dumpTag(const ElfSectionsTag& tag)
+{
+    /*
+    Elf64_Word  sh_name;    // Section name (index into the section header string table).
+    Elf64_Word  sh_type;    // Section type.
+    Elf64_Xword sh_flags;   // Section flags.
+    Elf64_Addr  sh_addr;    // Address in memory image.
+    Elf64_Off   sh_offset;  // Offset in file. 
+    Elf64_Xword sh_size;    // Size in bytes.  
+    Elf64_Word  sh_link;    // Index of a related section.
+    Elf64_Word  sh_info;    // Depends on section type. 
+    Elf64_Xword sh_addralign;   // Alignment in bytes.  
+    Elf64_Xword sh_entsize; // Size of each entry in section.
+    */
+    const Elf64_Shdr* sections = reinterpret_cast<const Elf64_Shdr*>(&tag.sections);
+    const Elf64_Shdr* stringTable = &sections[tag.shndx];
+    const char* strings = reinterpret_cast<const char*>(stringTable->sh_addr);
+
+    printf("ELF sections\n");
+    for (uint32_t i = 0; i < tag.num; i++) {
+        const auto& section = sections[i];
+        printf("%s (addr: %016llx, size: %llx)\n", strings + section.sh_name, section.sh_addr, section.sh_size);
+        /*printf("  sh_name:\t%s\n", strings + section.sh_name);
+        printf("  sh_type:\t%08x\n", section.sh_type);
+        printf("  sh_flags:\t%016llx\n", section.sh_flags);
+        printf("  sh_addr:\t%016llx\n", section.sh_addr);
+        printf("  sh_offset:\t%016llx\n", section.sh_offset);
+        printf("  sh_size:\t%016llx\n", section.sh_size);
+        printf("  sh_link:\t%08x\n", section.sh_link);
+        printf("  sh_info:\t%08x\n", section.sh_info);
+        printf("  sh_addralign:\t%016llx\n", section.sh_addralign);
+        printf("  sh_entsize:\t%016llx\n\n", section.sh_entsize);*/
+    }
+}
+
 void dumpMultibootInfo(const MultibootBasicInfo* info)
 {
     for (const auto& tag : info) {
         switch (tag.type) {
         case TagType::Mmap:
             dumpTag(static_cast<const MmapTag&>(tag));
+            break;
+        case TagType::ElfSections:
+            dumpTag(static_cast<const ElfSectionsTag&>(tag));
             break;
         default:
             break;
