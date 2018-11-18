@@ -54,27 +54,32 @@ PhysicalAddress virtualToPhysical(void* ptr)
     return result;
 }
 
-void dumpMultibootInfo(MultibootBasicInfo* info)
+void dumpTag(const MmapTag& mmapTag)
 {
-    printf("%x, %x\n", info->totalSize, info->reserved);
-    
-    for (const auto& tag : info) {
-        printf("Tag: %d\tsize: %d\taddr: %p\n", tag.type, tag.size, &tag);
-        if (tag.type == TagType::Mmap) {
-            printf("Memory map:\n");
-            auto& mmapTag = static_cast<const MmapTag&>(tag);
-            ASSERT(mmapTag.entrySize == sizeof(MmapEntry));
+    printf("Memory map:\n");
+    ASSERT(mmapTag.entrySize == sizeof(MmapEntry));
 
-            auto numEntries = (mmapTag.size - sizeof(MmapTag)) / mmapTag.entrySize;
-            for (uint32_t i = 0; i < numEntries; i++) {
-                const auto& entry = mmapTag.entries[i];
-                printf("\taddr: %016llx, len: %016llx, type: %d\n", entry.addr, entry.len, entry.type);
-            }
+    auto numEntries = (mmapTag.size - sizeof(MmapTag)) / mmapTag.entrySize;
+    for (uint32_t i = 0; i < numEntries; i++) {
+        const auto& entry = mmapTag.entries[i];
+        printf("    addr: %016llx, len: %016llx, type: %d\n", entry.addr, entry.len, entry.type);
+    }
+}
+
+void dumpMultibootInfo(const MultibootBasicInfo* info)
+{
+    for (const auto& tag : info) {
+        switch (tag.type) {
+        case TagType::Mmap:
+            dumpTag(static_cast<const MmapTag&>(tag));
+            break;
+        default:
+            break;
         }
     }
 }
 
-extern "C" void kmain(MultibootBasicInfo* basicInfo)
+extern "C" void kmain(const MultibootBasicInfo* basicInfo)
 {
     console::init();
 

@@ -275,15 +275,15 @@ private:
     const Tag* m_current;
 };
 
-inline MultibootTagIterator begin(MultibootBasicInfo* basicInfo)
+inline MultibootTagIterator begin(const MultibootBasicInfo* basicInfo)
 {
     auto addr = reinterpret_cast<uintptr_t>(basicInfo);
     addr += sizeof(*basicInfo);
 
-    return MultibootTagIterator(reinterpret_cast<Tag*>(addr));
+    return MultibootTagIterator(reinterpret_cast<const Tag*>(addr));
 }
 
-inline MultibootTagEnd end(MultibootBasicInfo*)
+inline MultibootTagEnd end(const MultibootBasicInfo*)
 {
     return MultibootTagEnd{};
 }
