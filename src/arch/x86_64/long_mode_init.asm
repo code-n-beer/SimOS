@@ -1,4 +1,5 @@
 global long_mode_start
+global kernelStackBottom
 
 extern kmain
 extern _init
@@ -15,10 +16,19 @@ long_mode_start:
     mov fs, ax
     mov gs, ax
 
-    add rsp, 0xffffffff80000000 ; adjust stack pointer to the virtual address
+    mov rsp, kernelStackTop
+    ;add rsp, 0xffffffff80000000 ; adjust stack pointer to the virtual address
 
     call _init
     call kmain
     call _fini
 
     hlt
+
+section .kstack
+
+align 4096
+
+kernelStackBottom:
+    resb 4096 * 4
+kernelStackTop:
