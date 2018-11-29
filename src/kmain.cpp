@@ -6,6 +6,7 @@
 #include <printf.h>
 #include <console.h>
 #include <elf.h>
+#include <memory.h>
 
 #define PML4_IDX_FROM_ADDR(addr)  (((addr) >> 39) & 0x1FF)
 #define PDPT_IDX_FROM_ADDR(addr)  (((addr) >> 30) & 0x1FF)
@@ -123,10 +124,11 @@ static const size_t PAGE_SIZE = 0x20'0000;
 
 enum MmuFlags : uint64_t
 {
-    Mmu_Present = (1 << 0),
-    Mmu_ReadWrite = (1 << 1),
-    Mmu_PageSize = (1 << 7)
+    Mmu_Present = 1 << 0,
+    Mmu_ReadWrite = 1 << 1,
+    Mmu_PageSize = 1 << 7,
 };
+
 
 void mapPhysical(PhysicalAddress physAddr, void* virtAddr, size_t size, uint64_t flags = 0)
 {
@@ -170,9 +172,9 @@ void mapPhysical(PhysicalAddress physAddr, void* virtAddr, size_t size, uint64_t
 extern "C" void kmain(const MultibootBasicInfo* basicInfo)
 {
     console::init();
-    // 0000'7ffd'8c79'd000
-    uint64_t* virtualPML4 = (uint64_t*)(0xFFFF'FFFF'FFFF'F000ULL);
+    memory::init();
 
+/*
     auto p = (uint64_t*)(0xffff'ffff'8000'0000ull);
     auto p2 = (uint64_t*)(0xffff'ffff'8040'a000ull);
     auto x = (uint64_t)p;
@@ -184,6 +186,6 @@ extern "C" void kmain(const MultibootBasicInfo* basicInfo)
     printf("\n%p: %016llx\n%p: %016llx\n\n:3\n", p, *p, p2, *p2);
 
     dumpMultibootInfo(basicInfo);
-    
+*/
     __asm__("hlt");
 }
