@@ -222,23 +222,51 @@ public:
 
     PhysicalPageMap(PhysicalAddress memoryBase, size_t memorySize) :
         m_memoryBase(memoryBase), 
-        m_bitmapSize((memorySize / PAGE_SIZE) / sizeof(uint64_t))
+        m_bitmapSize((memorySize / PAGE_SIZE) / (sizeof(uint64_t) * 8))
     {
-        printf("%s, %llx, %lld\n", __func__, m_memoryBase, m_bitmapSize);
+        // TODO: write memset
+        for (uint64_t i = 0; i < m_bitmapSize; i++) {
+            m_bitmap[i] = 0;
+        }
     }
 
     PhysicalAddress getNextFreePage()
     {
+        auto addr = m_memoryBase;
+
+        while (true) {
+            if (!isPageUsed(addr)) {
+                return addr;
+            }
+
+            addr += PAGE_SIZE;
+        }
+
         return 0ull;
     }
 
     void markPage(PhysicalAddress address, bool used)
     {
+        const auto pageIdx = ((address - m_memoryBase) / PAGE_SIZE);
+        const auto entryIdx = pageIdx / (sizeof(uint64_t) * 8);
+        const auto shift = pageIdx % (sizeof(uint64_t) * 8);
+        const auto mask = 1ULL << shift;
+
+        if (used) {
+            m_bitmap[entryIdx] |= mask;
+        } else {
+            m_bitmap[entryIdx] &= ~mask;
+        }
     }
 
     bool isPageUsed(PhysicalAddress address)
     {
-        return true;
+        const auto pageIdx = ((address - m_memoryBase) / PAGE_SIZE);
+        const auto entryIdx = pageIdx / (sizeof(uint64_t) * 8);
+        const auto shift = pageIdx % (sizeof(uint64_t) * 8);
+        const auto mask = 1ULL << shift;
+
+        return (m_bitmap[entryIdx] & mask) != 0;
     }
 
     size_t getBitmapSize()
@@ -357,7 +385,15 @@ void setupPageTables(const MultibootBasicInfo* multibootInfo)
     }
 
     auto pm = initPhysicalPageMap(memoryMap, &_kernelVirtualEnd);
-    printf("%lld\n", pm->getBitmapSize());
+    auto nextFree = pm->getNextFreePage();
+    printf("free: %016llx\n", nextFree);
+    pm->markPage(0x100000, true);
+
+    nextFree = pm->getNextFreePage();
+    printf("free: %016llx\n", nextFree);
+    pm->markPage(0x101000, true);
+    nextFree = pm->getNextFreePage();
+    printf("free: %016llx\n", nextFree);
 
     asm volatile(
         "movq %0, %%rax\n"
