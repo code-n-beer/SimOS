@@ -29,8 +29,8 @@ header_end:
 %define PDPT_IDX_FROM_ADDR(addr)  (((addr) >> 30) & 0x1FF)
 %define PD_IDX_FROM_ADDR(addr)    (((addr) >> 21) & 0x1FF)
 
-%define KERNEL_VIRTUAL_START    0xFFFFFFFF80400000
-%define KERNEL_PHYSICAL_START   0x0000000000400000
+%define KERNEL_VIRTUAL_START    0xFFFFFFFF80100000
+%define KERNEL_PHYSICAL_START   0x0000000000100000
 
 section .text
 bits 32
@@ -61,65 +61,24 @@ error:
 ; then map 0xFFFFFFFF_80000000-0xFFFFFFFF_C0000000 to the first 1GiB of physical memory
 set_up_page_tables:
 
-    ; map appropriate PML4 entry for low PDPT
-    mov eax, g_lowPDPT
+    ; map appropriate PML4 entries for the PDPT
+    mov eax, g_PDPT
     or eax, PRESENT | WRITABLE
     mov [g_PML4 + PML4_IDX_FROM_ADDR(KERNEL_PHYSICAL_START) * 8], eax
-
-    ; map appropriate PML4 entry for high PDPT
-    mov eax, g_highPDPT
-    or eax, PRESENT | WRITABLE
     mov [g_PML4 + PML4_IDX_FROM_ADDR(KERNEL_VIRTUAL_START) * 8], eax
 
-    ; map low PDPT entry to low PD
-    mov eax, g_lowPD
-    or eax, PRESENT | WRITABLE
-    mov [g_lowPDPT + PDPT_IDX_FROM_ADDR(KERNEL_PHYSICAL_START) * 8], eax
+    ; map a 1GB page starting from 0
+    mov eax, 0
+    or eax, PRESENT | WRITABLE | HUGE
+    mov [g_PDPT + PDPT_IDX_FROM_ADDR(KERNEL_PHYSICAL_START) * 8], eax
 
-    ; map high PDPT entry to high PD
-    mov eax, g_highPD
-    or eax, PRESENT | WRITABLE
-    mov [g_highPDPT + PDPT_IDX_FROM_ADDR(KERNEL_VIRTUAL_START) * 8], eax
-
-
-    ; map each low PD entry to a huge 2MiB page
-    mov ecx, 0         ; counter variable
-
-.map_lowPD:
-    ; map ecx-th PD entry to a huge page that starts at address 2MiB*ecx
-    mov eax, PAGE_SIZE
-    mul ecx            ; start address of ecx-th page
-    or eax, HUGE | PRESENT | WRITABLE
-    mov [g_lowPD + ecx * 8], eax ; map ecx-th entry
-
-    inc ecx            ; increase counter
-    cmp ecx, 512       ; if counter == 512, the whole P2 table is mapped
-    jne .map_lowPD  ; else map the next entry
-
-
-    ; map each high PD entry to a huge 2MiB page
-    mov ecx, 0         ; counter variable
-
-.map_highPD:
-    ; map ecx-th PD entry to a huge page that starts at address 2MiB*ecx
-    mov eax, PAGE_SIZE
-    mul ecx            ; start address of ecx-th page
-    or eax, HUGE | PRESENT | WRITABLE
-    mov [g_highPD + ecx * 8], eax ; map ecx-th entry
-
-    inc ecx            ; increase counter
-    cmp ecx, 512       ; if counter == 512, the whole P2 table is mapped
-    jne .map_highPD  ; else map the next entry
+    ; PML4 is used as the PDPT for high addresses, so set the appropriate entry there as well
+    mov [g_PML4 + PDPT_IDX_FROM_ADDR(KERNEL_VIRTUAL_START) * 8], eax
 
     ; map last entry of PML4 to PML4 itself for recursive pagetable mapping
     mov eax, g_PML4
     or eax, WRITABLE | PRESENT
     mov [g_PML4 + (511 * 8)], eax
-
-    ; because the PML4 is used as the PDPT for high addresses, map the 510th entry to the high PD
-    mov eax, g_highPD
-    or eax, WRITABLE | PRESENT
-    mov [g_PML4 + PDPT_IDX_FROM_ADDR(KERNEL_VIRTUAL_START) * 8], eax
 
     ret
 
@@ -220,21 +179,12 @@ gdt64:
 section .bss
 
 global g_PML4
-global g_lowPDPT
-global g_lowPD
-global g_highPDPT
-global g_highPD
+global g_PDPT
 
 align 4096
 g_PML4:
     resb 4096
-g_highPDPT:
-    resb 4096
-g_highPD:
-    resb 4096
-g_lowPDPT:
-    resb 4096
-g_lowPD:
+g_PDPT:
     resb 4096
 
 stack_bottom:
