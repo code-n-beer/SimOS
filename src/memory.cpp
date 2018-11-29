@@ -215,6 +215,73 @@ extern "C" uint8_t _kernelPhysicalEnd;
 extern "C" uint8_t _bootEnd;
 extern "C" uint8_t _stack_bottom;
 
+class PhysicalPageMap
+{
+public:
+    static const size_t PAGE_SIZE = 0x1000;
+
+    PhysicalPageMap(PhysicalAddress memoryBase, size_t memorySize) :
+        m_memoryBase(memoryBase), 
+        m_bitmapSize((memorySize / PAGE_SIZE) / sizeof(uint64_t))
+    {
+        printf("%s, %llx, %lld\n", __func__, m_memoryBase, m_bitmapSize);
+    }
+
+    PhysicalAddress getNextFreePage()
+    {
+        return 0ull;
+    }
+
+    void markPage(PhysicalAddress address, bool used)
+    {
+    }
+
+    bool isPageUsed(PhysicalAddress address)
+    {
+        return true;
+    }
+
+    size_t getBitmapSize()
+    {
+        return m_bitmapSize;
+    }
+
+private:
+    PhysicalAddress m_memoryBase;
+    size_t m_bitmapSize;
+    uint64_t m_bitmap[0];
+};
+
+template<typename T1, typename T2>
+struct Pair
+{
+    T1 first;
+    T2 second;
+};
+
+MmapEntry findBiggestMemoryArea(const MmapTag* mmap)
+{
+    MmapEntry biggest{};
+
+    auto numEntries = (mmap->size - sizeof(MmapTag)) / mmap->entrySize;
+    for (auto i = 0; i < numEntries; i++) {
+        const auto& entry = mmap->entries[i];
+        if (entry.type == MemoryType::Available && entry.len > biggest.len) {
+            biggest = entry;
+        }
+    }
+
+    printf("physical memory addr: %016llx, len: %016llx, type: %d\n", biggest.addr, biggest.len, biggest.type);
+    return biggest;
+}
+
+PhysicalPageMap* initPhysicalPageMap(const MmapTag* mmap, void* addr)
+{
+    printf("%s: %p\n", __func__, addr);
+    const auto mem = findBiggestMemoryArea(mmap);
+    return new (addr) PhysicalPageMap(mem.addr, mem.len);
+}
+
 void setupPageTables(const MultibootBasicInfo* multibootInfo)
 {
     const ElfSectionsTag* elfSections = nullptr;
@@ -229,14 +296,17 @@ void setupPageTables(const MultibootBasicInfo* multibootInfo)
     }
 
     // TODO: assert(elfSections && memoryMap);
+    auto physAddr = reinterpret_cast<uint64_t>(multibootInfo);
+    physAddr += multibootInfo->totalSize;
+    physAddr = (physAddr - 1) & ~0xFFFULL;
 
     // at this point we still have the first 1GB identity mapped, so we can do whatever
-    auto pml4 = new (&_kernelPhysicalEnd + sizeof(PML4) * 0) PML4();
-    auto pdpt = new (&_kernelPhysicalEnd + sizeof(PML4) * 1) PDPT();
-    auto pd = new (&_kernelPhysicalEnd + sizeof(PML4) * 2) PD();
-    auto pt = new (&_kernelPhysicalEnd + sizeof(PML4) * 3) PT();
-    auto pd2 = new (&_kernelPhysicalEnd + sizeof(PML4) * 4) PD();
-    auto pdpt2 = new (&_kernelPhysicalEnd + sizeof(PML4) * 5) PDPT();
+    auto pml4 = new (reinterpret_cast<void*>(physAddr + sizeof(PML4) * 0)) PML4();
+    auto pdpt = new (reinterpret_cast<void*>(physAddr + sizeof(PML4) * 1)) PDPT();
+    auto pd = new (reinterpret_cast<void*>(physAddr + sizeof(PML4) * 2)) PD();
+    auto pt = new (reinterpret_cast<void*>(physAddr + sizeof(PML4) * 3)) PT();
+    auto pd2 = new (reinterpret_cast<void*>(physAddr + sizeof(PML4) * 4)) PD();
+    auto pdpt2 = new (reinterpret_cast<void*>(physAddr + sizeof(PML4) * 5)) PDPT();
 
     // map kernel stuff, todo: map it properly from elf sections
     pml4->entryFromAddress(&_kernelVirtualStart) = { reinterpret_cast<uint64_t>(pdpt) | PML4E::Flags::Present | PML4E::Flags::Write };
@@ -274,6 +344,20 @@ void setupPageTables(const MultibootBasicInfo* multibootInfo)
         virtPtr += 0x1000;
         physPtr += 0x1000;
     }
+
+    virtPtr = &_kernelVirtualEnd;
+    physAddr += sizeof(PML4) * 6;
+
+    for (int j = 0; j < 10; j++) {
+        pt->entryFromAddress(virtPtr) = { physAddr | PTE::Flags::Present | PTE::Flags::Write };
+        auto i = pt->indexFromAddress(virtPtr);
+        printf("%lld: %016llx\n", i, pt->entries[i]);
+        virtPtr += 0x1000;
+        physAddr += 0x1000;
+    }
+
+    auto pm = initPhysicalPageMap(memoryMap, &_kernelVirtualEnd);
+    printf("%lld\n", pm->getBitmapSize());
 
     asm volatile(
         "movq %0, %%rax\n"

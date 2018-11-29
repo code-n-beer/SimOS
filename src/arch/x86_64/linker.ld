@@ -33,7 +33,7 @@ SECTIONS
         build/arch/x86_64/long_mode_init.o(COMMON)
     }
 
-    . = ALIGN(0x1000);
+    . = ALIGN(1M);
     _bootEnd = .;
 
     . += 0xFFFFFFFF80000000;
@@ -41,7 +41,6 @@ SECTIONS
 
     .text : AT(_bootEnd)
     {
-        *(.multiboot)
         *(.text)
     }
 
