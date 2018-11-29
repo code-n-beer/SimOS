@@ -64,6 +64,7 @@ SECTIONS
         *(.bss)
     }
 
+    . = ALIGN(0x1000);
     _kernelVirtualEnd = .;
     _kernelPhysicalEnd = (LOADADDR (.bss) + SIZEOF (.bss) + 0xFFF) & 0xFFFFFFFFFFFFF000;
 }

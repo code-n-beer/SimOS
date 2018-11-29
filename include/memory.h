@@ -3,12 +3,14 @@
 
 #include <stdint.h>
 
+struct MultibootBasicInfo;
+
 namespace memory
 {
 
 using PhysicalAddress = uint64_t;
 
-void init();
+void init(const MultibootBasicInfo*);
 
 }
 

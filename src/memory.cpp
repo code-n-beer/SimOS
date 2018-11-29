@@ -1,4 +1,5 @@
 #include <kernel.h>
+#include <multiboot.h>
 #include <memory.h>
 #include <printf.h>
 
@@ -189,7 +190,12 @@ struct PD : public PageMapBase<PDE> {};
 struct PT : public PageMapBase<PTE> {};
 struct PML4 : public PageMapBase<PML4E> {};
 
-void init()
+extern "C" uint8_t _kernelVirtualStart;
+extern "C" uint8_t _kernelVirtualEnd;
+extern "C" uint8_t _kernelPhysicalStart;
+extern "C" uint8_t _kernelPhysicalEnd;
+
+void init(const MultibootBasicInfo* multibootInfo)
 {
     auto pml4 = reinterpret_cast<PML4*>(0xffff'ffff'ffff'f000ull);
     const auto& entry = pml4->entries[0];
@@ -197,6 +203,10 @@ void init()
     printf("pml4[0]: %016llx\n", entry.raw);
     printf("    present: %s\n", entry.isPresent() ? "yes" : "no");
     printf("    addr:    %016llx\n", entry.getPhysicalAddress());
+    printf("virt start: %p\n", &_kernelVirtualStart);
+    printf("virt end:   %p\n", &_kernelVirtualEnd);
+    printf("phys start: %p\n", &_kernelPhysicalStart);
+    printf("phys end:   %p\n", &_kernelPhysicalEnd);
 }
 
 }

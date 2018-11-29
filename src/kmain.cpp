@@ -172,7 +172,7 @@ void mapPhysical(PhysicalAddress physAddr, void* virtAddr, size_t size, uint64_t
 extern "C" void kmain(const MultibootBasicInfo* basicInfo)
 {
     console::init();
-    memory::init();
+    memory::init(basicInfo);
 
 /*
     auto p = (uint64_t*)(0xffff'ffff'8000'0000ull);
