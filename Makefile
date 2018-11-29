@@ -19,8 +19,8 @@ CXX_OBJS := $(patsubst src/%.cpp, build/%.o, $(CXX_SRCS))
 C_SRCS := $(wildcard src/*.c)
 C_OBJS := $(patsubst src/%.c, build/%.o, $(C_SRCS))
 
-COMMON_CFLAGS := -g -ffreestanding -Wall -Wextra -Iinclude/ -mno-red-zone -mcmodel=kernel -flto -fno-exceptions -fno-rtti
-CXXFLAGS += $(COMMON_CFLAGS) -std=gnu++17
+COMMON_CFLAGS := -g -ffreestanding -Wall -Wextra -Iinclude/ -mno-red-zone -mcmodel=kernel -flto -fno-strict-aliasing
+CXXFLAGS += $(COMMON_CFLAGS) -std=gnu++17 -fno-exceptions -fno-rtti 
 CFLAGS += $(COMMON_CFLAGS) -std=gnu11
 LDFLAGS += -z max-page-size=0x1000 -flto
 
