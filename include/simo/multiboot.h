@@ -1,5 +1,4 @@
-#ifndef MULTIBOOT_H
-#define MULTIBOOT_H
+#pragma once
 
 #include <stdint.h>
 
@@ -288,4 +287,3 @@ inline MultibootTagEnd end(const MultibootBasicInfo*)
     return MultibootTagEnd{};
 }
 
-#endif 

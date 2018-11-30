@@ -1,5 +1,4 @@
-#ifndef ELF_H
-#define ELF_H
+#pragma once
 
 #include <stdint.h>
 
@@ -7,5 +6,3 @@
 using u_int32_t = uint32_t;
 
 #include <sys/elf64.h>
-
-#endif

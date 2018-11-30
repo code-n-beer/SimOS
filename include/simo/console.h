@@ -1,5 +1,4 @@
-#ifndef CONSOLE_H
-#define CONSOLE_H
+#pragma once
 
 #include <stddef.h>
 #include <stdint.h>
@@ -37,5 +36,3 @@ void setPosition(size_t x, size_t y);
 void putChar(char c);
 
 }
-
-#endif

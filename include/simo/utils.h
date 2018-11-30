@@ -1,5 +1,4 @@
-#ifndef UTILS_H
-#define UTILS_H
+#pragma once
 
 #include <stddef.h>
 #include <stdint.h>
@@ -94,5 +93,3 @@ private:
 };
 
 }
-
-#endif

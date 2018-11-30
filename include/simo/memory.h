@@ -1,5 +1,4 @@
-#ifndef MEMORY_H
-#define MEMORY_H
+#pragma once
 
 #include <stdint.h>
 
@@ -13,5 +12,3 @@ using PhysicalAddress = uint64_t;
 void init(const MultibootBasicInfo*);
 
 }
-
-#endif
