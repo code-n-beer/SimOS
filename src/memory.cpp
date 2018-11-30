@@ -23,7 +23,7 @@ constexpr uint64_t bitmask(size_t to, size_t from)
     uint64_t result = 0;
 
     while (to >= from) {
-        result |= 1ULL << to;
+        result |= 1UL << to;
         to--;
     }
 
@@ -240,7 +240,7 @@ public:
         const auto pageIdx = ((address - m_memoryBase) / PAGE_SIZE);
         const auto entryIdx = pageIdx / (sizeof(uint64_t) * 8);
         const auto shift = pageIdx % (sizeof(uint64_t) * 8);
-        const auto mask = 1ULL << shift;
+        const auto mask = 1UL << shift;
 
         // TODO: assert(entryIdx < m_bitmapSize);
         // TODO: what if there are multiple mappings to the same frame and only one of them is unmapped and freed?
@@ -257,7 +257,7 @@ public:
         const auto pageIdx = ((address - m_memoryBase) / PAGE_SIZE);
         const auto entryIdx = pageIdx / (sizeof(uint64_t) * 8);
         const auto shift = pageIdx % (sizeof(uint64_t) * 8);
-        const auto mask = 1ULL << shift;
+        const auto mask = 1UL << shift;
 
         // TODO: assert(entryIdx < m_bitmapSize);
 
@@ -285,7 +285,7 @@ MmapEntry findBiggestMemoryArea(const MmapTag* mmap)
     MmapEntry biggest{};
 
     auto numEntries = (mmap->size - sizeof(MmapTag)) / mmap->entrySize;
-    for (auto i = 0; i < numEntries; i++) {
+    for (auto i = 0ul; i < numEntries; i++) {
         const auto& entry = mmap->entries[i];
         if (entry.type == MemoryType::Available && entry.len > biggest.len) {
             biggest = entry;
@@ -303,7 +303,7 @@ PhysicalAddress getFirstSafePhysicalAddress(const MultibootBasicInfo* multibootI
     physAddr += multibootInfo->totalSize;
 
     // TODO: constexpr PhysicalAddress alignToPage(PhysicalAddress);
-    physAddr = (physAddr - 1) & ~0xFFFULL;
+    physAddr = (physAddr - 1) & ~0xFFFUL;
 
     return physAddr;
 }
@@ -311,7 +311,7 @@ PhysicalAddress getFirstSafePhysicalAddress(const MultibootBasicInfo* multibootI
 PhysicalPageMap* initPhysicalPageMap(const MmapTag* mmap, void* addr)
 {
     const auto mem = findBiggestMemoryArea(mmap);
-    printf("Physical memory at %016llx (size 0x%llx)\n", mem.addr, mem.len);
+    printf("Physical memory at %016lx (size 0x%lx)\n", mem.addr, mem.len);
     return new (addr) PhysicalPageMap(mem.addr, mem.len);
 }
 
@@ -350,19 +350,19 @@ void setupPageTables(const MultibootBasicInfo* multibootInfo)
     auto physPageMapVA = reinterpret_cast<void*>(physPageMapPA + 0xffff'ffff'8000'0000ull);
 
     g_physPageMap = initPhysicalPageMap(memoryMap, reinterpret_cast<void*>(physPageMapVA));
-    const auto physPageMapEndPA = (((physPageMapPA + g_physPageMap->getByteSize()) - 1) & ~0xFFFULL) + 0x1000;
+    const auto physPageMapEndPA = (((physPageMapPA + g_physPageMap->getByteSize()) - 1) & ~0xFFFUL) + 0x1000;
 
     auto startPtr = reinterpret_cast<PhysicalAddress>(&_kernelPhysicalStart);
     auto endPtr = reinterpret_cast<PhysicalAddress>(&_kernelPhysicalEnd);
 
     // reserve the physical memory where the kernel was loaded
-    printf("Reserving %016llx-%016llx...\n", startPtr, endPtr);
+    printf("Reserving %016lx-%016lx...\n", startPtr, endPtr);
     for (auto ptr = startPtr; ptr < endPtr; ptr += 0x1000) {
         g_physPageMap->markPage(reinterpret_cast<PhysicalAddress>(ptr), true);
     }
 
     // reserve the physical memory used by the frame allocator
-    printf("Reserving %016llx-%016llx...\n", physPageMapPA, physPageMapEndPA);
+    printf("Reserving %016lx-%016lx...\n", physPageMapPA, physPageMapEndPA);
     for (auto ptr = physPageMapPA; ptr < physPageMapEndPA; ptr += 0x1000) {
         g_physPageMap->markPage(ptr, true);
     }
@@ -371,32 +371,32 @@ void setupPageTables(const MultibootBasicInfo* multibootInfo)
     auto pml4PA = g_physPageMap->getNextFreePage();
     auto pml4 = new (reinterpret_cast<void*>(pml4PA)) PML4();
     g_physPageMap->markPage(pml4PA, true);
-    printf("PML4 is at %016llx\n", pml4PA);
+    printf("PML4 is at %016lx\n", pml4PA);
 
     auto pdptPA = g_physPageMap->getNextFreePage();
     auto pdpt = new (reinterpret_cast<void*>(pdptPA)) PDPT();
-    printf("PDPT is at %016llx\n", pdptPA);
+    printf("PDPT is at %016lx\n", pdptPA);
     g_physPageMap->markPage(pdptPA, true);
 
     auto pdpt2PA = g_physPageMap->getNextFreePage();
     auto pdpt2 = new (reinterpret_cast<void*>(pdpt2PA)) PDPT();
-    printf("PDPT2 is at %016llx\n", pdpt2PA);
+    printf("PDPT2 is at %016lx\n", pdpt2PA);
     g_physPageMap->markPage(pdpt2PA, true);
 
     auto pdPA = g_physPageMap->getNextFreePage();
     auto pd = new (reinterpret_cast<void*>(pdPA)) PD();
-    printf("PD is at %016llx\n", pdPA);
+    printf("PD is at %016lx\n", pdPA);
     g_physPageMap->markPage(pdPA, true);
 
     // TODO: finish this
     auto va = (void*)0xffff'ffff'8000'0000ull;
     auto va2 = (void*)0x0000'0000'000b'8000ull;
     pml4->entryFromAddress(va) = { pdptPA | PML4E::Present | PML4E::Write };
-    pdpt->entryFromAddress(va) = { 0ULL | PDPTE::PageSize | PDPTE::Present | PDPTE::Write };
+    pdpt->entryFromAddress(va) = { 0UL | PDPTE::PageSize | PDPTE::Present | PDPTE::Write };
 
     pml4->entryFromAddress(va2) = { pdpt2PA | PML4E::Present | PML4E::Write };
     pdpt2->entryFromAddress(va2) = { pdPA | PDPTE::Present | PDPTE::Write };
-    pd->entryFromAddress(va2) = { 0ULL | PDE::Present | PDE::PageSize | PDE::Write };
+    pd->entryFromAddress(va2) = { 0UL | PDE::Present | PDE::PageSize | PDE::Write };
 
     asm volatile(
         "movq %0, %%rax\n"

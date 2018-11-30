@@ -15,7 +15,7 @@ void dumpTag(const MmapTag& mmapTag)
     auto numEntries = (mmapTag.size - sizeof(MmapTag)) / mmapTag.entrySize;
     for (uint32_t i = 0; i < numEntries; i++) {
         const auto& entry = mmapTag.entries[i];
-        printf("    addr: %016llx, len: %016llx, type: %d\n", entry.addr, entry.len, entry.type);
+        printf("    addr: %016lx, len: %016lx, type: %d\n", entry.addr, entry.len, int(entry.type));
     }
 }
 
@@ -40,7 +40,7 @@ void dumpTag(const ElfSectionsTag& tag)
     printf("ELF sections\n");
     for (uint32_t i = 0; i < tag.num; i++) {
         const auto& section = sections[i];
-        printf("%s (addr: %016llx, size: %llx)\n", strings + section.sh_name, section.sh_addr, section.sh_size);
+        printf("%s (addr: %016lx, size: %lx)\n", strings + section.sh_name, section.sh_addr, section.sh_size);
         /*printf("  sh_name:\t%s\n", strings + section.sh_name);
         printf("  sh_type:\t%08x\n", section.sh_type);
         printf("  sh_flags:\t%08x\n", section.sh_flags);
