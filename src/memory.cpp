@@ -234,6 +234,7 @@ public:
     {
         auto addr = m_memoryBase;
 
+        // TODO: make this not stupid
         while (true) {
             if (!isPageUsed(addr)) {
                 return addr;
@@ -252,6 +253,9 @@ public:
         const auto shift = pageIdx % (sizeof(uint64_t) * 8);
         const auto mask = 1ULL << shift;
 
+        // TODO: assert(entryIdx < m_bitmapSize);
+        // TODO: what if there are multiple mappings to the same frame and only one of them is unmapped and freed?
+
         if (used) {
             m_bitmap[entryIdx] |= mask;
         } else {
@@ -259,32 +263,32 @@ public:
         }
     }
 
-    bool isPageUsed(PhysicalAddress address)
+    bool isPageUsed(PhysicalAddress address) const
     {
         const auto pageIdx = ((address - m_memoryBase) / PAGE_SIZE);
         const auto entryIdx = pageIdx / (sizeof(uint64_t) * 8);
         const auto shift = pageIdx % (sizeof(uint64_t) * 8);
         const auto mask = 1ULL << shift;
 
+        // TODO: assert(entryIdx < m_bitmapSize);
+
         return (m_bitmap[entryIdx] & mask) != 0;
     }
 
-    size_t getBitmapSize()
+    size_t getBitmapSize() const
     {
         return m_bitmapSize;
+    }
+
+    size_t getByteSize() const
+    {
+        return sizeof(*this) + m_bitmapSize * sizeof(uint64_t);
     }
 
 private:
     PhysicalAddress m_memoryBase;
     size_t m_bitmapSize;
     uint64_t m_bitmap[0];
-};
-
-template<typename T1, typename T2>
-struct Pair
-{
-    T1 first;
-    T2 second;
 };
 
 MmapEntry findBiggestMemoryArea(const MmapTag* mmap)
@@ -299,15 +303,117 @@ MmapEntry findBiggestMemoryArea(const MmapTag* mmap)
         }
     }
 
-    printf("physical memory addr: %016llx, len: %016llx, type: %d\n", biggest.addr, biggest.len, biggest.type);
     return biggest;
+}
+
+// the name is pretty misleading, there's no guarantee that there's actual physical memory after
+// the multiboot structure, but whatever
+PhysicalAddress getFirstSafePhysicalAddress(const MultibootBasicInfo* multibootInfo)
+{
+    auto physAddr = reinterpret_cast<PhysicalAddress>(multibootInfo);
+    physAddr += multibootInfo->totalSize;
+
+    // TODO: constexpr PhysicalAddress alignToPage(PhysicalAddress);
+    physAddr = (physAddr - 1) & ~0xFFFULL;
+
+    return physAddr;
 }
 
 PhysicalPageMap* initPhysicalPageMap(const MmapTag* mmap, void* addr)
 {
-    printf("%s: %p\n", __func__, addr);
     const auto mem = findBiggestMemoryArea(mmap);
+    printf("Physical memory at %016llx (size 0x%llx)\n", mem.addr, mem.len);
     return new (addr) PhysicalPageMap(mem.addr, mem.len);
+}
+
+template<typename T1, typename T2>
+struct Pair
+{
+    T1 first;
+    T2 second;
+};
+
+Pair<const ElfSectionsTag*, const MmapTag*> getMultibootTags(const MultibootBasicInfo* multibootInfo)
+{
+    const ElfSectionsTag* elfSections = nullptr;
+    const MmapTag* memoryMap = nullptr;
+
+    for (const auto& tag : multibootInfo) {
+        if (tag.type == TagType::ElfSections) {
+            elfSections = static_cast<const ElfSectionsTag*>(&tag);
+        } else if (tag.type == TagType::Mmap) {
+            memoryMap = static_cast<const MmapTag*>(&tag);
+        }
+    }
+
+    return { elfSections, memoryMap };
+}
+
+PhysicalPageMap* g_physPageMap = nullptr;
+
+void setupPageTables2(const MultibootBasicInfo* multibootInfo)
+{
+    auto [elfSections, memoryMap] = getMultibootTags(multibootInfo);
+    // TODO: assert(elfSections && memoryMap);
+
+    auto physPageMapPA = getFirstSafePhysicalAddress(multibootInfo);
+    // virtual address is physical + 0xffffffff80000000 at this point
+    auto physPageMapVA = reinterpret_cast<void*>(physPageMapPA + 0xffff'ffff'8000'0000ull);
+
+    g_physPageMap = initPhysicalPageMap(memoryMap, reinterpret_cast<void*>(physPageMapVA));
+    const auto physPageMapEndPA = (((physPageMapPA + g_physPageMap->getByteSize()) - 1) & ~0xFFFULL) + 0x1000;
+
+    auto startPtr = reinterpret_cast<PhysicalAddress>(&_kernelPhysicalStart);
+    auto endPtr = reinterpret_cast<PhysicalAddress>(&_kernelPhysicalEnd);
+
+    // reserve the physical memory where the kernel was loaded
+    printf("Reserving %016llx-%016llx...\n", startPtr, endPtr);
+    for (auto ptr = startPtr; ptr < endPtr; ptr += 0x1000) {
+        g_physPageMap->markPage(reinterpret_cast<PhysicalAddress>(ptr), true);
+    }
+
+    // reserve the physical memory used by the frame allocator
+    printf("Reserving %016llx-%016llx...\n", physPageMapPA, physPageMapEndPA);
+    for (auto ptr = physPageMapPA; ptr < physPageMapEndPA; ptr += 0x1000) {
+        g_physPageMap->markPage(ptr, true);
+    }
+
+    // TODO: getNextFreePage + markPage -> PhysicalPageMap::allocateFrame
+    auto pml4PA = g_physPageMap->getNextFreePage();
+    auto pml4 = new (reinterpret_cast<void*>(pml4PA)) PML4();
+    g_physPageMap->markPage(pml4PA, true);
+    printf("PML4 is at %016llx\n", pml4PA);
+
+    auto pdptPA = g_physPageMap->getNextFreePage();
+    auto pdpt = new (reinterpret_cast<void*>(pdptPA)) PDPT();
+    printf("PDPT is at %016llx\n", pdptPA);
+    g_physPageMap->markPage(pdptPA, true);
+
+    auto pdpt2PA = g_physPageMap->getNextFreePage();
+    auto pdpt2 = new (reinterpret_cast<void*>(pdpt2PA)) PDPT();
+    printf("PDPT2 is at %016llx\n", pdpt2PA);
+    g_physPageMap->markPage(pdpt2PA, true);
+
+    auto pdPA = g_physPageMap->getNextFreePage();
+    auto pd = new (reinterpret_cast<void*>(pdPA)) PD();
+    printf("PD is at %016llx\n", pdPA);
+    g_physPageMap->markPage(pdPA, true);
+
+    // TODO: finish this
+    auto va = (void*)0xffff'ffff'8000'0000ull;
+    auto va2 = (void*)0x0000'0000'000b'8000ull;
+    pml4->entryFromAddress(va) = { pdptPA | PML4E::Present | PML4E::Write };
+    pdpt->entryFromAddress(va) = { 0ULL | PDPTE::PageSize | PDPTE::Present | PDPTE::Write };
+
+    pml4->entryFromAddress(va2) = { pdpt2PA | PML4E::Present | PML4E::Write };
+    pdpt2->entryFromAddress(va2) = { pdPA | PDPTE::Present | PDPTE::Write };
+    pd->entryFromAddress(va2) = { 0ULL | PDE::Present | PDE::PageSize | PDE::Write };
+
+    asm volatile(
+        "movq %0, %%rax\n"
+        "movq %%rax, %%cr3\n"
+        : : "r"(pml4PA) : "%rax"
+    );
 }
 
 void setupPageTables(const MultibootBasicInfo* multibootInfo)
@@ -404,7 +510,8 @@ void setupPageTables(const MultibootBasicInfo* multibootInfo)
 
 void init(const MultibootBasicInfo* multibootInfo)
 {
-    setupPageTables(multibootInfo);
+    //setupPageTables(multibootInfo);
+    setupPageTables2(multibootInfo);
     printf("if we returned here it's all good\n");
 }
 
