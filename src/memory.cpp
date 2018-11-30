@@ -1,6 +1,6 @@
-#include <kernel.h>
-#include <multiboot.h>
-#include <memory.h>
+#include <simo/kernel.h>
+#include <simo/multiboot.h>
+#include <simo/memory.h>
 #include <printf.h>
 
 template<typename T = uint64_t>

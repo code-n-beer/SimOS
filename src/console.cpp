@@ -1,6 +1,6 @@
-#include <kernel.h>
-#include <console.h>
-#include <utils.h>
+#include <simo/kernel.h>
+#include <simo/console.h>
+#include <simo/utils.h>
 
 namespace
 {
