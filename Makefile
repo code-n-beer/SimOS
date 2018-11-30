@@ -40,7 +40,7 @@ clean:
 	rm -rf build
 
 run: $(ISO)
-	qemu-system-x86_64 -m 1G -cdrom $(ISO)
+	qemu-system-x86_64 -m 1G -cdrom $(ISO) -cpu Skylake-Client -no-reboot -no-shutdown -d int -monitor stdio
 
 iso: $(ISO)
 
