@@ -68,7 +68,7 @@ void _putchar(char character);
  * \param format A string that specifies the format of the output
  * \return The number of characters that are written into the array, not counting the terminating null character
  */
-int printf(const char* format, ...);
+int printf(const char* format, ...) __attribute__((format(printf, 1, 2)));
 
 
 /**
@@ -78,7 +78,7 @@ int printf(const char* format, ...);
  * \param format A string that specifies the format of the output
  * \return The number of characters that are WRITTEN into the buffer, not counting the terminating null character
  */
-int sprintf(char* buffer, const char* format, ...);
+int sprintf(char* buffer, const char* format, ...) __attribute__((format(printf, 2, 3)));
 
 
 /**
@@ -89,7 +89,7 @@ int sprintf(char* buffer, const char* format, ...);
  * \return The number of characters that are WRITTEN into the buffer, not counting the terminating null character
  *         If the formatted string is truncated the buffer size (count) is returned
  */
-int  snprintf(char* buffer, size_t count, const char* format, ...);
+int  snprintf(char* buffer, size_t count, const char* format, ...) __attribute__((format(printf, 3, 4)));
 int vsnprintf(char* buffer, size_t count, const char* format, va_list va);
 
 
@@ -101,7 +101,7 @@ int vsnprintf(char* buffer, size_t count, const char* format, va_list va);
  * \param format A string that specifies the format of the output
  * \return The number of characters that are sent to the output function, not counting the terminating null character
  */
-int fctprintf(void (*out)(char character, void* arg), void* arg, const char* format, ...);
+int fctprintf(void (*out)(char character, void* arg), void* arg, const char* format, ...) __attribute__((format(printf, 3, 4)));
 
 #else   // PRINTF_OVERRIDE_LIBC
 
