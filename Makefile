@@ -49,26 +49,31 @@ build_dir:
 
 $(ISO): $(KERNEL) $(GRUB_CFG)
 	@mkdir -p build/isofiles/boot/grub
-	cp $(KERNEL) build/isofiles/boot/kernel.bin
-	cp $(GRUB_CFG) build/isofiles/boot/grub
-	grub-mkrescue -o $(ISO) build/isofiles
-	rm -r build/isofiles
+	@cp $(KERNEL) build/isofiles/boot/kernel.bin
+	@cp $(GRUB_CFG) build/isofiles/boot/grub
+	@grub-mkrescue -o $(ISO) build/isofiles
+	@rm -r build/isofiles
 
 $(KERNEL): build_dir $(ALL_OBJS) $(LINKER_SCRIPT)
-	$(CC) $(LDFLAGS) -T $(LINKER_SCRIPT) -o $(KERNEL) $(ALL_OBJS) -nostdlib -lgcc
+	@echo "Linking..."
+	@$(CC) $(LDFLAGS) -T $(LINKER_SCRIPT) -o $(KERNEL) $(ALL_OBJS) -nostdlib -lgcc
 
 build/%.o: src/%.cpp
 	@mkdir -p $(shell dirname $@)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	@echo "[CXX]  $<"
+	@$(CXX) $(CXXFLAGS) -c $< -o $@
 
 build/%.o: src/%.c
 	@mkdir -p $(shell dirname $@)
-	$(CC) $(CFLAGS) -c $< -o $@
+	@echo "[CC]   $<"
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 build/%.o: src/%.asm
 	@mkdir -p $(shell dirname $@)
-	nasm -felf64 $< -o $@
+	@echo "[NASM] $<"
+	@nasm -felf64 $< -o $@
 
 build/arch/$(ARCH)/%.o: src/arch/$(ARCH)/%.asm
 	@mkdir -p $(shell dirname $@)
-	nasm -felf64 $< -o $@
+	@echo "[NASM] $<"
+	@nasm -felf64 $< -o $@
