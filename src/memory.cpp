@@ -18,17 +18,6 @@ constexpr bool hasBit(T value, U bits)
 namespace memory
 {
 
-enum struct PdpteFlags : uint64_t
-{
-    Present             = bit(0),
-    Write               = bit(1),
-    Supervisor          = bit(2),
-    PageWriteThrough    = bit(3),
-    PageCacheDisable    = bit(4),
-    Accessed            = bit(5),
-    ExecuteDisable      = bit(63),
-};
-
 constexpr uint64_t bitmask(size_t to, size_t from)
 {
     uint64_t result = 0;
@@ -351,7 +340,7 @@ Pair<const ElfSectionsTag*, const MmapTag*> getMultibootTags(const MultibootBasi
 
 PhysicalPageMap* g_physPageMap = nullptr;
 
-void setupPageTables2(const MultibootBasicInfo* multibootInfo)
+void setupPageTables(const MultibootBasicInfo* multibootInfo)
 {
     auto [elfSections, memoryMap] = getMultibootTags(multibootInfo);
     // TODO: assert(elfSections && memoryMap);
@@ -414,105 +403,13 @@ void setupPageTables2(const MultibootBasicInfo* multibootInfo)
         "movq %%rax, %%cr3\n"
         : : "r"(pml4PA) : "%rax"
     );
-}
 
-void setupPageTables(const MultibootBasicInfo* multibootInfo)
-{
-    const ElfSectionsTag* elfSections = nullptr;
-    const MmapTag* memoryMap = nullptr;
-
-    for (const auto& tag : multibootInfo) {
-        if (tag.type == TagType::ElfSections) {
-            elfSections = static_cast<const ElfSectionsTag*>(&tag);
-        } else if (tag.type == TagType::Mmap) {
-            memoryMap = static_cast<const MmapTag*>(&tag);
-        }
-    }
-
-    // TODO: assert(elfSections && memoryMap);
-    auto physAddr = reinterpret_cast<uint64_t>(multibootInfo);
-    physAddr += multibootInfo->totalSize;
-    physAddr = (physAddr - 1) & ~0xFFFULL;
-
-    // at this point we still have the first 1GB identity mapped, so we can do whatever
-    auto pml4 = new (reinterpret_cast<void*>(physAddr + sizeof(PML4) * 0)) PML4();
-    auto pdpt = new (reinterpret_cast<void*>(physAddr + sizeof(PML4) * 1)) PDPT();
-    auto pd = new (reinterpret_cast<void*>(physAddr + sizeof(PML4) * 2)) PD();
-    auto pt = new (reinterpret_cast<void*>(physAddr + sizeof(PML4) * 3)) PT();
-    auto pd2 = new (reinterpret_cast<void*>(physAddr + sizeof(PML4) * 4)) PD();
-    auto pdpt2 = new (reinterpret_cast<void*>(physAddr + sizeof(PML4) * 5)) PDPT();
-
-    // map kernel stuff, todo: map it properly from elf sections
-    pml4->entryFromAddress(&_kernelVirtualStart) = { reinterpret_cast<uint64_t>(pdpt) | PML4E::Flags::Present | PML4E::Flags::Write };
-    pdpt->entryFromAddress(&_kernelVirtualStart) = { reinterpret_cast<uint64_t>(pd) | PDPTE::Flags::Present | PDPTE::Flags::Write };
-    pd->entryFromAddress(&_kernelVirtualStart) = { reinterpret_cast<uint64_t>(pt) | PDE::Flags::Present | PDE::Flags::Write };
-
-    // identity map the first 2MB of physical memory so we can write to the VGA console
-    pml4->entryFromAddress(0) = { reinterpret_cast<uint64_t>(pdpt2) | PML4E::Flags::Present | PML4E::Flags::Write };
-    pdpt2->entries[0] = { reinterpret_cast<uint64_t>(pd2) | PDPTE::Flags::Present | PDPTE::Flags::Write };
-    pd2->entries[0] = { uint64_t(0) | PDE::Flags::Present | PDE::Flags::Write | PDE::Flags::PageSize };
-
-    printf("PML4\n");
-    for (int i = 0; i < 512; i++) {
-        if (pml4->entries[i].isPresent()) {
-            printf("%d: %016llx\n", i, pml4->entries[i]);
-        }
-    }
-
-    printf("\nPDPT\n");
-    for (int i = 0; i < 512; i++) {
-        if (pdpt->entries[i].isPresent()) {
-            printf("%d: %016llx\n", i, pdpt->entries[i]);
-        }
-    }
-
-    uint8_t* virtPtr = &_kernelVirtualStart;
-    uint8_t* physPtr = &_bootEnd;
-
-    printf("\nPT\n");
-    // TODO: fuck
-    while (virtPtr != &_kernelVirtualEnd) {
-        pt->entryFromAddress(virtPtr) = { reinterpret_cast<uint64_t>(physPtr) | PTE::Flags::Present | PTE::Flags::Write };
-        auto i = pt->indexFromAddress(virtPtr);
-        printf("%lld: %016llx\n", i, pt->entries[i]);
-        virtPtr += 0x1000;
-        physPtr += 0x1000;
-    }
-
-    virtPtr = &_kernelVirtualEnd;
-    physAddr += sizeof(PML4) * 6;
-
-    for (int j = 0; j < 10; j++) {
-        pt->entryFromAddress(virtPtr) = { physAddr | PTE::Flags::Present | PTE::Flags::Write };
-        auto i = pt->indexFromAddress(virtPtr);
-        printf("%lld: %016llx\n", i, pt->entries[i]);
-        virtPtr += 0x1000;
-        physAddr += 0x1000;
-    }
-
-    auto pm = initPhysicalPageMap(memoryMap, &_kernelVirtualEnd);
-    auto nextFree = pm->getNextFreePage();
-    printf("free: %016llx\n", nextFree);
-    pm->markPage(0x100000, true);
-
-    nextFree = pm->getNextFreePage();
-    printf("free: %016llx\n", nextFree);
-    pm->markPage(0x101000, true);
-    nextFree = pm->getNextFreePage();
-    printf("free: %016llx\n", nextFree);
-
-    asm volatile(
-        "movq %0, %%rax\n"
-        "movq %%rax, %%cr3\n"
-        : : "r"(pml4) : "%rax"
-    );
+    printf("No longer running with identity mapping \\:D/\n");
 }
 
 void init(const MultibootBasicInfo* multibootInfo)
 {
-    //setupPageTables(multibootInfo);
-    setupPageTables2(multibootInfo);
-    printf("if we returned here it's all good\n");
+    setupPageTables(multibootInfo);
 }
 
 }
