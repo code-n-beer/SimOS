@@ -15,9 +15,6 @@ constexpr bool hasBit(T value, U bits)
     return (value & static_cast<T>(bits)) != 0;
 }
 
-namespace memory
-{
-
 constexpr uint64_t bitmask(size_t to, size_t from)
 {
     uint64_t result = 0;
@@ -30,13 +27,22 @@ constexpr uint64_t bitmask(size_t to, size_t from)
     return result;
 }
 
+namespace memory
+{
+
 // Intel docs says MAXPHYADDR is at most 52 on current platforms and I'd rather not deal with CPUID now
 // so I'll just pretend it's always 52
 const size_t MAXPHYADDR = 52;
 
-struct PDPT;
-struct PD;
-struct PT;
+template<typename T>
+concept bool HasFlags = requires {
+    typename T::Flags;
+};
+
+template<typename T>
+concept bool HasPhysicalAddressMask = requires {
+    { T::PHYS_ADDR_MASK } -> uint64_t;
+};
 
 struct PML4E
 {
@@ -166,7 +172,7 @@ struct PTE
     }
 };
 
-template<typename TEntry, size_t VirtAddrShift>
+template<typename TEntry, size_t VirtAddrShift> requires HasFlags<TEntry> && HasPhysicalAddressMask<TEntry>
 struct PageMapBase
 {
     static_assert(sizeof(TEntry) == sizeof(uint64_t), "Page maps must have 8-byte entries!");
