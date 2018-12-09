@@ -2,6 +2,7 @@
 #include <simo/multiboot.h>
 #include <simo/memory.h>
 #include <simo/pagemap.h>
+#include <simo/utils.h>
 #include <printf.h>
 
 namespace memory
@@ -14,19 +15,21 @@ extern "C" uint8_t _kernelPhysicalEnd;
 extern "C" uint8_t _bootEnd;
 extern "C" uint8_t _stack_bottom;
 
+const size_t PAGE_SIZE = 0x1000;
+
+constexpr PhysicalAddress alignToPage(PhysicalAddress addr)
+{
+    return ((addr - 1) + PAGE_SIZE) & ~(PAGE_SIZE - 1);
+}
+
 class PhysicalPageMap
 {
 public:
-    static const size_t PAGE_SIZE = 0x1000;
-
     PhysicalPageMap(PhysicalAddress memoryBase, size_t memorySize) :
         m_memoryBase(memoryBase), 
         m_bitmapSize((memorySize / PAGE_SIZE) / (sizeof(uint64_t) * 8))
     {
-        // TODO: write memset
-        for (uint64_t i = 0; i < m_bitmapSize; i++) {
-            m_bitmap[i] = 0;
-        }
+        memset(m_bitmap, 0, m_bitmapSize * sizeof(uint64_t));
     }
 
     PhysicalAddress getNextFreePage()
@@ -112,10 +115,7 @@ PhysicalAddress getFirstSafePhysicalAddress(const MultibootBasicInfo* multibootI
     auto physAddr = reinterpret_cast<PhysicalAddress>(multibootInfo);
     physAddr += multibootInfo->totalSize;
 
-    // TODO: constexpr PhysicalAddress alignToPage(PhysicalAddress);
-    physAddr = (physAddr - 1) & ~0xFFFUL;
-
-    return physAddr;
+    return alignToPage(physAddr);
 }
 
 PhysicalPageMap* initPhysicalPageMap(const MmapTag* mmap, void* addr)
@@ -160,7 +160,7 @@ void setupPageTables(const MultibootBasicInfo* multibootInfo)
     auto physPageMapVA = reinterpret_cast<void*>(physPageMapPA + 0xffff'ffff'8000'0000ull);
 
     g_physPageMap = initPhysicalPageMap(memoryMap, reinterpret_cast<void*>(physPageMapVA));
-    const auto physPageMapEndPA = (((physPageMapPA + g_physPageMap->getByteSize()) - 1) & ~0xFFFUL) + 0x1000;
+    const auto physPageMapEndPA = alignToPage(physPageMapPA + g_physPageMap->getByteSize());
 
     auto startPtr = reinterpret_cast<PhysicalAddress>(&_kernelPhysicalStart);
     auto endPtr = reinterpret_cast<PhysicalAddress>(&_kernelPhysicalEnd);
@@ -220,6 +220,7 @@ void setupPageTables(const MultibootBasicInfo* multibootInfo)
 void init(const MultibootBasicInfo* multibootInfo)
 {
     setupPageTables(multibootInfo);
+    printf("if you're reading this, memory mapping actually work\n");
 }
 
 }
