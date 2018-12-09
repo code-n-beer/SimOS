@@ -29,7 +29,7 @@ header_end:
 %define PDPT_IDX_FROM_ADDR(addr)  (((addr) >> 30) & 0x1FF)
 %define PD_IDX_FROM_ADDR(addr)    (((addr) >> 21) & 0x1FF)
 
-%define KERNEL_VIRTUAL_START    0xFFFFFFFF80100000
+%define KERNEL_VIRTUAL_START    0xFFFFFFFF80200000
 %define KERNEL_PHYSICAL_START   0x0000000000100000
 
 section .text

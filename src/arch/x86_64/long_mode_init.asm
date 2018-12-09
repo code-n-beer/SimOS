@@ -25,10 +25,9 @@ long_mode_start:
 
     hlt
 
-section .kstack
-
+section .bss
 align 4096
 
 kernelStackBottom:
-    resb 4096 * 4
+    resb 4096
 kernelStackTop:

@@ -61,7 +61,6 @@ SECTIONS
     {
         *(COMMON)
         *(.bss)
-        build/arch/x86_64/long_mode_init.o(.kstack)
     }
 
     . = ALIGN(0x1000);
