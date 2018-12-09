@@ -1,36 +1,25 @@
 /* blatantly stolen from http://ringzeroandlower.com/2017/08/08/x86-64-kernel-boot.html with minor tweaks */
 ENTRY(start)
 
-SECTIONS
-{
+SECTIONS {
     . = 1M;
     _kernelPhysicalStart = .;
 
-    .boottext :
-    {
-        build/arch/x86_64/boot.o(.multiboot)
-        build/arch/x86_64/boot.o(.text)
-        build/arch/x86_64/long_mode_init.o(.text)
+    .boottext : {
+        build/arch/x86_64/*(.multiboot .text)
     }
 
-    .bootrodata :
-    {
-        build/arch/x86_64/boot.o(.rodata)
-        build/arch/x86_64/long_mode_init.o(.rodata)
+    .bootrodata : {
+        build/arch/x86_64/*(.rodata)
     }
 
-    .bootdata :
-    {
-        build/arch/x86_64/boot.o(.data)
-        build/arch/x86_64/long_mode_init.o(.data)
+    .bootdata : {
+        build/arch/x86_64/*(.data)
     }
 
-    .bootbss :
-    {
-        build/arch/x86_64/boot.o(.bss)
-        build/arch/x86_64/boot.o(COMMON)
-        build/arch/x86_64/long_mode_init.o(.bss)
-        build/arch/x86_64/long_mode_init.o(COMMON)
+    .bootbss : {
+        build/arch/x86_64/*(.bss COMMON) /* the vscode linker script plugin doesn't like
+                                            COMMON so it mistakenly parses this input section as a comment */
     }
 
     . = ALIGN(1M);
@@ -39,31 +28,23 @@ SECTIONS
     . += 0xFFFFFFFF80000000;
     _kernelVirtualStart = .;
 
-    .text : AT(_bootEnd)
-    {
+    .text : AT(_bootEnd) {
         *(.text)
     }
 
-    . = ALIGN(0x1000);
-    .rodata : AT ( (LOADADDR (.text) + SIZEOF (.text) + 0xFFF) & 0xFFFFFFFFFFFFF000 )
-    {
-        *(.rodata)
+    .rodata ALIGN(4K) : AT(ALIGN(LOADADDR(.text) + SIZEOF(.text), 4K)) {
+        *(.rodata*)
     }
 
-    . = ALIGN(0x1000);
-    .data : AT ( (LOADADDR (.rodata) + SIZEOF (.rodata) + 0xFFF) & 0xFFFFFFFFFFFFF000 )
-    {
+    .data ALIGN(4K) : AT(ALIGN(LOADADDR(.rodata) + SIZEOF(.rodata), 4K)) {
         *(.data)
     }
 
-    . = ALIGN(0x1000);
-    .bss : AT ( (LOADADDR (.data) + SIZEOF (.data) + 0xFFF) & 0xFFFFFFFFFFFFF000 )
-    {
-        *(COMMON)
-        *(.bss)
+    .bss ALIGN(4K) : AT(ALIGN(LOADADDR(.data) + SIZEOF(.data), 4K)) {
+        *(.bss COMMON)
     }
 
-    . = ALIGN(0x1000);
+    . = ALIGN(4K);
     _kernelVirtualEnd = .;
-    _kernelPhysicalEnd = (LOADADDR (.bss) + SIZEOF (.bss) + 0xFFF) & 0xFFFFFFFFFFFFF000;
+    _kernelPhysicalEnd = ALIGN(LOADADDR(.bss) + SIZEOF(.bss), 4K);
 }
