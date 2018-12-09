@@ -22,23 +22,23 @@ constexpr PhysicalAddress alignToPage(PhysicalAddress addr)
     return ((addr - 1) + PAGE_SIZE) & ~(PAGE_SIZE - 1);
 }
 
-class PhysicalPageMap
+class PhysicalFrameMap
 {
 public:
-    PhysicalPageMap(PhysicalAddress memoryBase, size_t memorySize) :
+    PhysicalFrameMap(PhysicalAddress memoryBase, size_t memorySize) :
         m_memoryBase(memoryBase), 
         m_bitmapSize((memorySize / PAGE_SIZE) / (sizeof(uint64_t) * 8))
     {
         memset(m_bitmap, 0, m_bitmapSize * sizeof(uint64_t));
     }
 
-    PhysicalAddress getNextFreePage()
+    PhysicalAddress getNextFreeFrame()
     {
         auto addr = m_memoryBase;
 
         // TODO: make this not stupid
         while (true) {
-            if (!isPageUsed(addr)) {
+            if (!isFrameUsed(addr)) {
                 return addr;
             }
 
@@ -48,11 +48,11 @@ public:
         return 0ull;
     }
 
-    void markPage(PhysicalAddress address, bool used)
+    void markFrame(PhysicalAddress address, bool used)
     {
-        const auto pageIdx = ((address - m_memoryBase) / PAGE_SIZE);
-        const auto entryIdx = pageIdx / (sizeof(uint64_t) * 8);
-        const auto shift = pageIdx % (sizeof(uint64_t) * 8);
+        const auto frameIdx = ((address - m_memoryBase) / PAGE_SIZE);
+        const auto entryIdx = frameIdx / (sizeof(uint64_t) * 8);
+        const auto shift = frameIdx % (sizeof(uint64_t) * 8);
         const auto mask = 1UL << shift;
 
         // TODO: assert(entryIdx < m_bitmapSize);
@@ -65,11 +65,11 @@ public:
         }
     }
 
-    bool isPageUsed(PhysicalAddress address) const
+    bool isFrameUsed(PhysicalAddress address) const
     {
-        const auto pageIdx = ((address - m_memoryBase) / PAGE_SIZE);
-        const auto entryIdx = pageIdx / (sizeof(uint64_t) * 8);
-        const auto shift = pageIdx % (sizeof(uint64_t) * 8);
+        const auto frameIdx = ((address - m_memoryBase) / PAGE_SIZE);
+        const auto entryIdx = frameIdx / (sizeof(uint64_t) * 8);
+        const auto shift = frameIdx % (sizeof(uint64_t) * 8);
         const auto mask = 1UL << shift;
 
         // TODO: assert(entryIdx < m_bitmapSize);
@@ -118,11 +118,11 @@ PhysicalAddress getFirstSafePhysicalAddress(const MultibootBasicInfo* multibootI
     return alignToPage(physAddr);
 }
 
-PhysicalPageMap* initPhysicalPageMap(const MmapTag* mmap, void* addr)
+PhysicalFrameMap* initPhysicalFrameMap(const MmapTag* mmap, void* addr)
 {
     const auto mem = findBiggestMemoryArea(mmap);
     printf("Physical memory at %016lx (size 0x%lx)\n", mem.addr, mem.len);
-    return new (addr) PhysicalPageMap(mem.addr, mem.len);
+    return new (addr) PhysicalFrameMap(mem.addr, mem.len);
 }
 
 template<typename T1, typename T2>
@@ -148,19 +148,19 @@ Pair<const ElfSectionsTag*, const MmapTag*> getMultibootTags(const MultibootBasi
     return { elfSections, memoryMap };
 }
 
-PhysicalPageMap* g_physPageMap = nullptr;
+PhysicalFrameMap* g_physFrameMap = nullptr;
 
 void setupPageTables(const MultibootBasicInfo* multibootInfo)
 {
     auto [elfSections, memoryMap] = getMultibootTags(multibootInfo);
     // TODO: assert(elfSections && memoryMap);
 
-    auto physPageMapPA = getFirstSafePhysicalAddress(multibootInfo);
+    auto physFrameMapPA = getFirstSafePhysicalAddress(multibootInfo);
     // virtual address is physical + 0xffffffff80000000 at this point
-    auto physPageMapVA = reinterpret_cast<void*>(physPageMapPA + 0xffff'ffff'8000'0000ull);
+    auto physFrameMapVA = reinterpret_cast<void*>(physFrameMapPA + 0xffff'ffff'8000'0000ull);
 
-    g_physPageMap = initPhysicalPageMap(memoryMap, reinterpret_cast<void*>(physPageMapVA));
-    const auto physPageMapEndPA = alignToPage(physPageMapPA + g_physPageMap->getByteSize());
+    g_physFrameMap = initPhysicalFrameMap(memoryMap, reinterpret_cast<void*>(physFrameMapVA));
+    const auto physFrameMapEndPA = alignToPage(physFrameMapPA + g_physFrameMap->getByteSize());
 
     auto startPtr = reinterpret_cast<PhysicalAddress>(&_kernelPhysicalStart);
     auto endPtr = reinterpret_cast<PhysicalAddress>(&_kernelPhysicalEnd);
@@ -168,35 +168,35 @@ void setupPageTables(const MultibootBasicInfo* multibootInfo)
     // reserve the physical memory where the kernel was loaded
     printf("Reserving %016lx-%016lx...\n", startPtr, endPtr);
     for (auto ptr = startPtr; ptr < endPtr; ptr += 0x1000) {
-        g_physPageMap->markPage(reinterpret_cast<PhysicalAddress>(ptr), true);
+        g_physFrameMap->markFrame(reinterpret_cast<PhysicalAddress>(ptr), true);
     }
 
     // reserve the physical memory used by the frame allocator
-    printf("Reserving %016lx-%016lx...\n", physPageMapPA, physPageMapEndPA);
-    for (auto ptr = physPageMapPA; ptr < physPageMapEndPA; ptr += 0x1000) {
-        g_physPageMap->markPage(ptr, true);
+    printf("Reserving %016lx-%016lx...\n", physFrameMapPA, physFrameMapEndPA);
+    for (auto ptr = physFrameMapPA; ptr < physFrameMapEndPA; ptr += 0x1000) {
+        g_physFrameMap->markFrame(ptr, true);
     }
 
     // TODO: getNextFreePage + markPage -> PhysicalPageMap::allocateFrame
-    auto pml4PA = g_physPageMap->getNextFreePage();
+    auto pml4PA = g_physFrameMap->getNextFreeFrame();
     auto pml4 = new (reinterpret_cast<void*>(pml4PA)) PML4();
-    g_physPageMap->markPage(pml4PA, true);
+    g_physFrameMap->markFrame(pml4PA, true);
     printf("PML4 is at %016lx\n", pml4PA);
 
-    auto pdptPA = g_physPageMap->getNextFreePage();
+    auto pdptPA = g_physFrameMap->getNextFreeFrame();
     auto pdpt = new (reinterpret_cast<void*>(pdptPA)) PDPT();
     printf("PDPT is at %016lx\n", pdptPA);
-    g_physPageMap->markPage(pdptPA, true);
+    g_physFrameMap->markFrame(pdptPA, true);
 
-    auto pdpt2PA = g_physPageMap->getNextFreePage();
+    auto pdpt2PA = g_physFrameMap->getNextFreeFrame();
     auto pdpt2 = new (reinterpret_cast<void*>(pdpt2PA)) PDPT();
     printf("PDPT2 is at %016lx\n", pdpt2PA);
-    g_physPageMap->markPage(pdpt2PA, true);
+    g_physFrameMap->markFrame(pdpt2PA, true);
 
-    auto pdPA = g_physPageMap->getNextFreePage();
+    auto pdPA = g_physFrameMap->getNextFreeFrame();
     auto pd = new (reinterpret_cast<void*>(pdPA)) PD();
     printf("PD is at %016lx\n", pdPA);
-    g_physPageMap->markPage(pdPA, true);
+    g_physFrameMap->markFrame(pdPA, true);
 
     // TODO: finish this
     auto va = (void*)0xffff'ffff'8000'0000ull;
