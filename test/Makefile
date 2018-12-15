@@ -5,7 +5,7 @@ OBJ = $(patsubst src/%.cpp, $(OBJDIR)/%.o, $(SRC))
 
 TARGET = $(OBJDIR)/simotest
 
-CXXFLAGS += -Wall -Wextra -O3 -fconcepts -std=gnu++17 -I./include
+CXXFLAGS += -Wall -Wextra -O3 -fconcepts -std=gnu++17 -I../include
 
 .PHONY: all clean
 

@@ -21,10 +21,10 @@ public:
 
     template<typename T = ValueType> T value() const { return T{m_value}; }
 
-    Flags<TFlag> operator|(Flags<TFlag> t)  const { return { m_value | t.m_value }; }
+    Flags<TFlag> operator|(Flags<TFlag> t)  const { return Flags{ static_cast<ValueType>(m_value | t.m_value) }; }
     Flags<TFlag> operator|(TFlag t)         const { return (*this) | Flags(t); } 
-    Flags<TFlag> operator&(Flags<TFlag> t)  const { return { m_value & t.m_value }; }
-    Flags<TFlag> operator~()                const { return { ~m_value }; }
+    Flags<TFlag> operator&(Flags<TFlag> t)  const { return Flags{ m_value & t.m_value }; }
+    Flags<TFlag> operator~()                const { return Flags{ ~m_value }; }
     operator bool()                         const { return m_value != 0; }
 
     Flags<TFlag>& operator|=(Flags<TFlag> t)
@@ -40,10 +40,16 @@ public:
     }
 
 private:
-    Flags(ValueType v) :
+    explicit Flags(ValueType v) :
         m_value(v) {}
     
     ValueType m_value{};
 };
+
+template<typename... TFlags>
+auto makeFlags(TFlags... flags)
+{
+    return (Flags<TFlags>(flags) | ...);
+}
 
 }
