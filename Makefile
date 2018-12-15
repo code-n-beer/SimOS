@@ -32,7 +32,7 @@ CRTN_OBJ := build/crtn.o
 OBJS := $(CXX_OBJS) $(C_OBJS) $(ASM_OBJS)
 ALL_OBJS := $(CRTI_OBJ) $(CRTBEGIN_OBJ) $(OBJS) $(CRTEND_OBJ) $(CRTN_OBJ)
 
-.PHONY: all clean run iso kernel
+.PHONY: all clean run iso kernel test
 
 all: $(KERNEL)
 
@@ -77,3 +77,6 @@ build/arch/$(ARCH)/%.o: src/arch/$(ARCH)/%.asm
 	@mkdir -p $(shell dirname $@)
 	@echo "[NASM] $<"
 	@nasm -felf64 $< -o $@
+
+test:
+	$(MAKE) -C test/ run
