@@ -6,20 +6,20 @@ SECTIONS {
     _kernelPhysicalStart = .;
 
     .boottext : {
-        build/arch/x86_64/*(.multiboot .text)
+        build/boot/*(.multiboot .text)
     }
 
     .bootrodata : {
-        build/arch/x86_64/*(.rodata)
+        build/boot/*(.rodata)
     }
 
     .bootdata : {
-        build/arch/x86_64/*(.data)
+        build/boot/*(.data)
     }
 
     .bootbss : {
-        build/arch/x86_64/*(.bss COMMON) /* the vscode linker script plugin doesn't like
-                                            COMMON so it mistakenly parses this input section as a comment */
+        build/boot/*(.bss COMMON) /* the vscode linker script plugin doesn't like
+                                     COMMON so it mistakenly parses this input section as a comment */
     }
 
     . = ALIGN(1M);

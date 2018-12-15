@@ -7,11 +7,11 @@ LD := $(ARCH)-elf-ld
 KERNEL := build/kernel-$(ARCH).bin
 ISO := build/os-$(ARCH).iso
 
-LINKER_SCRIPT := src/arch/$(ARCH)/linker.ld
-GRUB_CFG := src/arch/$(ARCH)/grub.cfg
+LINKER_SCRIPT := src/linker.ld
+GRUB_CFG := src/boot/grub.cfg
 
-ASM_SRCS := $(wildcard src/arch/$(ARCH)/*.asm)
-ASM_OBJS := $(patsubst src/arch/$(ARCH)/%.asm, build/arch/$(ARCH)/%.o, $(ASM_SRCS))
+ASM_SRCS := $(wildcard src/boot/*.asm)
+ASM_OBJS := $(patsubst src/boot/%.asm, build/boot/%.o, $(ASM_SRCS))
 
 CXX_SRCS := $(wildcard src/*.cpp)
 CXX_OBJS := $(patsubst src/%.cpp, build/%.o, $(CXX_SRCS))
@@ -73,7 +73,7 @@ build/%.o: src/%.asm
 	@echo "[NASM] $<"
 	@nasm -felf64 $< -o $@
 
-build/arch/$(ARCH)/%.o: src/arch/$(ARCH)/%.asm
+build/boot/%.o: src/boot/%.asm
 	@mkdir -p $(shell dirname $@)
 	@echo "[NASM] $<"
 	@nasm -felf64 $< -o $@
