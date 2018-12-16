@@ -31,30 +31,45 @@ private:
     T m_value;
 };
 
+template<size_t, typename...>
+class TupleImpl;
+
+template<size_t I>
+class TupleImpl<I> {};
+
+template<size_t I, typename T, typename... Ts>
+class TupleImpl<I, T, Ts...> : public TupleElement<I, T>, public TupleImpl<I + 1, Ts...>
+{
+public:
+    using TupleElement<I, T>::TupleElement;
+
+    TupleImpl(T&& value, Ts&&... values) :
+        TupleElement<I, T>(stl::forward<T>(value)),
+        TupleImpl<I + 1, Ts...>(stl::forward<Ts>(values)...) {}
+};
+
 }
 
 namespace stl
 {
 
-template<size_t... Is>
-struct IndexSequence : Constant<size_t, Is>... {};
+template<size_t I, typename T>
+typename detail::TupleElement<I, T>::ValueType& get(detail::TupleElement<I, T>& tuple)
+{
+    return tuple.get();
+}
+
+template<size_t I, typename T>
+const typename detail::TupleElement<I, T>::ValueType& get(const detail::TupleElement<I, T>& tuple)
+{
+    return tuple.get();
+}
 
 template<typename... Ts>
-using TypeIndexSequence = IndexSequence<__integer_pack(sizeof...(Ts))...>;
-
-template<typename... Ts>
-class Tuple : public detail::TupleElement<TypeIndexSequence<Ts>::value, Ts>...
+class Tuple : public detail::TupleImpl<0, Ts...>
 {
 public:
-    Tuple(Ts&&... values) :
-        detail::TupleElement<TypeIndexSequence<Ts>::value, Ts>(stl::forward<Ts>(values))...
-    {}
+    using detail::TupleImpl<0, Ts...>::TupleImpl;
 };
-
-template<size_t I, typename T, typename... Ts>
-typename detail::TupleElement<I, T>::ValueType& get(Tuple<Ts...>& tuple)
-{
-    return tuple.detail::TupleElement<I, T>::get();
-}
 
 }

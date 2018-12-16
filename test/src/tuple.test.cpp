@@ -4,8 +4,8 @@
 #include "stl/tuple.h"
 
 TEST_CASE("tuple", "[tuple]") {
-    stl::Tuple<uint32_t, char> t{1337, 'a'};
+    const stl::Tuple<uint32_t, char> t{1337, 'a'};
 
-    auto v = stl::get<0, int>(t);
-
+    REQUIRE(stl::get<0>(t) == uint32_t(1337));
+    REQUIRE(stl::get<1>(t) == 'a');
 }
