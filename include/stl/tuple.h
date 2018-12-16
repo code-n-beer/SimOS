@@ -14,7 +14,10 @@ public:
     using ValueType = T;
 
     TupleElement() : m_value{} {}
-    TupleElement(T&& value) : m_value(stl::forward<T>(value)) {}
+
+    template<typename U>
+    explicit TupleElement(U&& value) : m_value(stl::forward<U>(value)) {}
+
     TupleElement(const TupleElement<I, T>& other) = default;
 
     T& get()
@@ -43,9 +46,10 @@ class TupleImpl<I, T, Ts...> : public TupleElement<I, T>, public TupleImpl<I + 1
 public:
     using TupleElement<I, T>::TupleElement;
 
-    TupleImpl(T&& value, Ts&&... values) :
-        TupleElement<I, T>(stl::forward<T>(value)),
-        TupleImpl<I + 1, Ts...>(stl::forward<Ts>(values)...) {}
+    template<typename U, typename... Us>
+    TupleImpl(U&& value, Us&&... values) :
+        TupleElement<I, T>(stl::forward<U>(value)),
+        TupleImpl<I + 1, Ts...>(stl::forward<Us>(values)...) {}
 };
 
 }
