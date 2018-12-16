@@ -4,6 +4,7 @@
 #include <simo/pagemap.h>
 #include <simo/utils.h>
 #include <printf.h>
+#include <stl/tuple.h>
 
 namespace memory
 {
@@ -50,31 +51,25 @@ public:
 
     void markFrame(PhysicalAddress address, bool used)
     {
-        const auto frameIdx = ((address - m_memoryBase) / PAGE_SIZE);
-        const auto entryIdx = frameIdx / (sizeof(uint64_t) * 8);
-        const auto shift = frameIdx % (sizeof(uint64_t) * 8);
-        const auto mask = 1UL << shift;
+        auto [entry, mask] = computeEntryIndexAndMask(address);
 
         // TODO: assert(entryIdx < m_bitmapSize);
         // TODO: what if there are multiple mappings to the same frame and only one of them is unmapped and freed?
 
         if (used) {
-            m_bitmap[entryIdx] |= mask;
+            m_bitmap[entry] |= mask;
         } else {
-            m_bitmap[entryIdx] &= ~mask;
+            m_bitmap[entry] &= ~mask;
         }
     }
 
     bool isFrameUsed(PhysicalAddress address) const
     {
-        const auto frameIdx = ((address - m_memoryBase) / PAGE_SIZE);
-        const auto entryIdx = frameIdx / (sizeof(uint64_t) * 8);
-        const auto shift = frameIdx % (sizeof(uint64_t) * 8);
-        const auto mask = 1UL << shift;
+        auto [entry, mask] = computeEntryIndexAndMask(address);
 
         // TODO: assert(entryIdx < m_bitmapSize);
 
-        return (m_bitmap[entryIdx] & mask) != 0;
+        return (m_bitmap[entry] & mask) != 0;
     }
 
     size_t getBitmapSize() const
@@ -88,6 +83,16 @@ public:
     }
 
 private:
+    stl::Tuple<size_t, uint64_t> computeEntryIndexAndMask(PhysicalAddress address) const
+    {
+        const auto frameIdx = ((address - m_memoryBase) / PAGE_SIZE);
+        const auto entryIdx = frameIdx / (sizeof(uint64_t) * 8);
+        const auto shift = frameIdx % (sizeof(uint64_t) * 8);
+        const auto mask = 1UL << shift;
+
+        return {entryIdx, mask};
+    }
+
     PhysicalAddress m_memoryBase;
     size_t m_bitmapSize;
     uint64_t m_bitmap[0];
@@ -125,14 +130,7 @@ PhysicalFrameMap* initPhysicalFrameMap(const MmapTag* mmap, void* addr)
     return new (addr) PhysicalFrameMap(mem.addr, mem.len);
 }
 
-template<typename T1, typename T2>
-struct Pair
-{
-    T1 first;
-    T2 second;
-};
-
-Pair<const ElfSectionsTag*, const MmapTag*> getMultibootTags(const MultibootBasicInfo* multibootInfo)
+stl::Tuple<const ElfSectionsTag*, const MmapTag*> getMultibootTags(const MultibootBasicInfo* multibootInfo)
 {
     const ElfSectionsTag* elfSections = nullptr;
     const MmapTag* memoryMap = nullptr;
@@ -145,7 +143,7 @@ Pair<const ElfSectionsTag*, const MmapTag*> getMultibootTags(const MultibootBasi
         }
     }
 
-    return { elfSections, memoryMap };
+    return {elfSections, memoryMap};
 }
 
 PhysicalFrameMap* g_physFrameMap = nullptr;

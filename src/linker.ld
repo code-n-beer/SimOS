@@ -40,7 +40,12 @@ SECTIONS {
         *(.data)
     }
 
-    .bss ALIGN(4K) : AT(ALIGN(LOADADDR(.data) + SIZEOF(.data), 4K)) {
+    /* TODO: deal with this */
+    .eh_frame ALIGN(4K) : AT(ALIGN(LOADADDR(.data) + SIZEOF(.data), 4K)) {
+        *(.eh_frame)
+    }
+
+    .bss ALIGN(4K) : AT(ALIGN(LOADADDR(.eh_frame) + SIZEOF(.eh_frame), 4K)) {
         *(.bss COMMON)
     }
 
