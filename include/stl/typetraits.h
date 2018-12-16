@@ -49,4 +49,7 @@ constexpr T&& forward(RemoveReference<T>&& t) noexcept
     return static_cast<T&&>(t);
 }
 
+template<typename T>
+T&& declval() noexcept;
+
 }
