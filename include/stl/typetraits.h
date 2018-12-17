@@ -38,6 +38,14 @@ using RemoveReference = typename detail::RemoveReference<T>::Type;
 template<typename T>
 constexpr bool IsEmpty = __is_empty(T);
 
+template<typename T> constexpr bool IsLvalueReference       = false;
+template<typename T> constexpr bool IsLvalueReference<T&>   = true;
+
+template<typename T> constexpr bool IsRvalueReference       = false;
+template<typename T> constexpr bool IsRvalueReference<T&&>  = true;
+
+template<typename T> constexpr bool IsReference = IsLvalueReference<T> || IsRvalueReference<T>;
+
 template<typename T>
 constexpr T&& forward(RemoveReference<T>& t) noexcept
 {
