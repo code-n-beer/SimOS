@@ -23,6 +23,7 @@ struct IntegralConstant
 
     static constexpr ValueType value = Value;
     constexpr operator ValueType() const noexcept { return value; }
+    constexpr ValueType operator()() const noexcept { return value; }
 };
 
 using True = IntegralConstant<bool, true>;
