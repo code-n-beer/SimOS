@@ -34,22 +34,22 @@ private:
     T m_value;
 };
 
-template<size_t, typename...>
+template<size_t... Is>
+class TupleIndices {};
+
+template<typename... Ts>
+using TupleIndicesFor = TupleIndices<__integer_pack(sizeof...(Ts))...>;
+
+template<typename, typename...>
 class TupleImpl;
 
-template<size_t I>
-class TupleImpl<I> {};
-
-template<size_t I, typename T, typename... Ts>
-class TupleImpl<I, T, Ts...> : public TupleElement<I, T>, public TupleImpl<I + 1, Ts...>
+template<size_t... Is, typename... Ts>
+class TupleImpl<TupleIndices<Is...>, Ts...> : public TupleElement<Is, Ts>...
 {
 public:
-    using TupleElement<I, T>::TupleElement;
-
-    template<typename U, typename... Us>
-    TupleImpl(U&& value, Us&&... values) :
-        TupleElement<I, T>(stl::forward<U>(value)),
-        TupleImpl<I + 1, Ts...>(stl::forward<Us>(values)...) {}
+    template<typename... Us>
+    TupleImpl(Us&&... values) : TupleElement<Is, Ts>(stl::forward<Ts>(values))...
+    {}
 };
 
 }
@@ -70,10 +70,10 @@ const typename detail::TupleElement<I, T>::ValueType& get(const detail::TupleEle
 }
 
 template<typename... Ts>
-class Tuple : public detail::TupleImpl<0, Ts...>
+class Tuple : public detail::TupleImpl<detail::TupleIndicesFor<Ts...>, Ts...>
 {
 public:
-    using detail::TupleImpl<0, Ts...>::TupleImpl;
+    using detail::TupleImpl<detail::TupleIndicesFor<Ts...>, Ts...>::TupleImpl;
 };
 
 }
