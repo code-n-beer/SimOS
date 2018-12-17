@@ -16,17 +16,17 @@ namespace stl
 {
 
 template<typename T, T Value>
-struct Constant
+struct IntegralConstant
 {
     using ValueType = T;
-    using Type = Constant;
+    using Type = IntegralConstant;
 
     static constexpr ValueType value = Value;
     constexpr operator ValueType() const noexcept { return value; }
 };
 
-using True = Constant<bool, true>;
-using False = Constant<bool, false>;
+using True = IntegralConstant<bool, true>;
+using False = IntegralConstant<bool, false>;
 
 template<bool Condition, typename T>
 using EnableIf = typename detail::EnableIf<Condition, T>::Type;

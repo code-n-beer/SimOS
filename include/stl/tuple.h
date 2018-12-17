@@ -85,7 +85,7 @@ template<typename>
 struct tuple_size;
 
 template<typename... Ts>
-struct tuple_size<stl::Tuple<Ts...>> : stl::Constant<size_t, sizeof...(Ts)> {};
+struct tuple_size<stl::Tuple<Ts...>> : stl::IntegralConstant<size_t, sizeof...(Ts)> {};
 
 template<size_t I, typename T>
 struct tuple_element
