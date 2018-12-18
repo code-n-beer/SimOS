@@ -9,6 +9,7 @@ enum class TestFlags : std::uint64_t
     Value2 = 1 << 1,
     Value3 = 1 << 2,
     Value4 = 1 << 3,
+    Value5 = 1UL << 32,
 };
 
 enum class TestFlags2 : std::uint8_t
@@ -19,7 +20,10 @@ enum class TestFlags2 : std::uint8_t
     Value4 = 1 << 3,
 };
 
-TEST_CASE("heh", "[ebin]") {
+static_assert(stl::Flags(TestFlags::Value5).value() == uint64_t(TestFlags::Value5));
+static_assert(stl::makeFlags(TestFlags2::Value1, TestFlags2::Value4).value() == 0b1001);
+
+TEST_CASE("flags", "[flags]") {
     stl::Flags<TestFlags> f;
 
     REQUIRE(f.value() == 0);

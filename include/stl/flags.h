@@ -11,43 +11,47 @@ public:
 
     using ValueType = __underlying_type(TFlag);
 
-    Flags() = default;
-    ~Flags() = default;
-    Flags(const Flags<TFlag>&) = default;
-    Flags(Flags<TFlag>&&) = default;
+    constexpr Flags() = default;
 
-    Flags(TFlag v) :
-        m_value(ValueType(v)) {}
+    constexpr Flags(const Flags<TFlag>& other) :
+        m_value{other.m_value} {}
 
-    template<typename T = ValueType> T value() const { return T{m_value}; }
+    constexpr Flags(Flags<TFlag>&& other) :
+        m_value{other.m_value} {}
 
-    Flags<TFlag> operator|(Flags<TFlag> t)  const { return Flags{ static_cast<ValueType>(m_value | t.m_value) }; }
-    Flags<TFlag> operator|(TFlag t)         const { return (*this) | Flags(t); } 
-    Flags<TFlag> operator&(Flags<TFlag> t)  const { return Flags{ m_value & t.m_value }; }
-    Flags<TFlag> operator~()                const { return Flags{ ~m_value }; }
-    operator bool()                         const { return m_value != 0; }
+    constexpr Flags(TFlag v) :
+        m_value{ValueType(v)} {}
 
-    Flags<TFlag>& operator|=(Flags<TFlag> t)
+    template<typename T = ValueType>
+    constexpr T value() const { return T{m_value}; }
+
+    constexpr Flags<TFlag> operator|(Flags<TFlag> t)  const { return Flags{ static_cast<ValueType>(m_value | t.m_value) }; }
+    constexpr Flags<TFlag> operator|(TFlag t)         const { return (*this) | Flags(t); } 
+    constexpr Flags<TFlag> operator&(Flags<TFlag> t)  const { return Flags{ m_value & t.m_value }; }
+    constexpr Flags<TFlag> operator~()                const { return Flags{ ~m_value }; }
+    constexpr operator bool()                         const { return m_value != 0; }
+
+    constexpr Flags<TFlag>& operator|=(Flags<TFlag> t)
     {   
         m_value |= t.m_value;
         return *this;
     }
     
-    Flags<TFlag>& operator&=(Flags<TFlag> t)
+    constexpr Flags<TFlag>& operator&=(Flags<TFlag> t)
     {   
         m_value &= t.m_value;
         return *this;
     }
 
 private:
-    explicit Flags(ValueType v) :
-        m_value(v) {}
+    constexpr explicit Flags(ValueType v) :
+        m_value{v} {}
     
     ValueType m_value{};
 };
 
 template<typename... TFlags>
-auto makeFlags(TFlags... flags)
+constexpr auto makeFlags(TFlags... flags)
 {
     return (Flags<TFlags>(flags) | ...);
 }
