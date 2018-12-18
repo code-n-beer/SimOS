@@ -19,6 +19,8 @@ CXX_OBJS := $(patsubst src/%.cpp, build/%.o, $(CXX_SRCS))
 C_SRCS := $(wildcard src/*.c)
 C_OBJS := $(patsubst src/%.c, build/%.o, $(C_SRCS))
 
+SRCS = $(C_SRCS) $(CXX_SRCS)
+
 COMMON_CFLAGS := -g -ffreestanding -Wall -Wextra -Iinclude/ -mno-red-zone -mcmodel=kernel -flto -fno-strict-aliasing -m64
 CXXFLAGS += $(COMMON_CFLAGS) -std=gnu++17 -fno-exceptions -fno-rtti -fconcepts
 CFLAGS += $(COMMON_CFLAGS) -std=gnu11
@@ -31,6 +33,9 @@ CRTN_OBJ := build/crtn.o
 
 OBJS := $(CXX_OBJS) $(C_OBJS) $(ASM_OBJS)
 ALL_OBJS := $(CRTI_OBJ) $(CRTBEGIN_OBJ) $(OBJS) $(CRTEND_OBJ) $(CRTN_OBJ)
+
+DEPFLAGS = -MT $@ -MMD -MP -MF build/$*.Td
+POSTCOMPILE = @mv -f build/$*.Td build/$*.d && touch $@
 
 .PHONY: all clean run iso kernel test
 
@@ -58,15 +63,17 @@ $(KERNEL): build_dir $(ALL_OBJS) $(LINKER_SCRIPT)
 	@echo "Linking..."
 	@$(CC) $(LDFLAGS) -T $(LINKER_SCRIPT) -o $(KERNEL) $(ALL_OBJS) -nostdlib -lgcc
 
-build/%.o: src/%.cpp
+build/%.o: src/%.cpp build/%.d
 	@mkdir -p $(shell dirname $@)
 	@echo "[CXX]  $<"
-	@$(CXX) $(CXXFLAGS) -c $< -o $@
+	@$(CXX) $(DEPFLAGS) $(CXXFLAGS) -c $< -o $@
+	$(POSTCOMPILE)
 
-build/%.o: src/%.c
+build/%.o: src/%.c build/%.d
 	@mkdir -p $(shell dirname $@)
 	@echo "[CC]   $<"
-	@$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(DEPFLAGS) $(CFLAGS) -c $< -o $@
+	$(POSTCOMPILE)
 
 build/%.o: src/%.asm
 	@mkdir -p $(shell dirname $@)
@@ -80,3 +87,8 @@ build/boot/%.o: src/boot/%.asm
 
 test:
 	$(MAKE) -C test/ run
+
+build/%.d: ;
+.PRECIOUS: build/%.d
+
+include $(wildcard $(patsubst src/%,build/%.d,$(basename $(SRCS))))
