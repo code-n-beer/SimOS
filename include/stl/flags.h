@@ -1,5 +1,7 @@
 #pragma once
 
+#include "typetraits.h"
+
 namespace stl
 {
 
@@ -18,9 +20,13 @@ public:
 
     constexpr Flags(Flags<TFlag>&& other) :
         m_value{other.m_value} {}
-
-    constexpr Flags(TFlag v) :
-        m_value{ValueType(v)} {}
+    
+    template<typename... Ts>
+    constexpr Flags(TFlag value, Ts... values) :
+        m_value{static_cast<ValueType>((ValueType(value) | ... | ValueType(values)))}
+    {
+        static_assert(stl::AreSame<TFlag, Ts...>);
+    }
 
     template<typename T = ValueType>
     constexpr T value() const { return T{m_value}; }
@@ -49,11 +55,5 @@ private:
     
     ValueType m_value{};
 };
-
-template<typename... TFlags>
-constexpr auto makeFlags(TFlags... flags)
-{
-    return (Flags<TFlags>(flags) | ...);
-}
 
 }
