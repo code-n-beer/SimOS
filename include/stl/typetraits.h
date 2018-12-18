@@ -32,6 +32,15 @@ using False = IntegralConstant<bool, false>;
 template<bool Condition, typename T>
 using EnableIf = typename detail::EnableIf<Condition, T>::Type;
 
+template<typename T, typename U>
+constexpr bool IsSame = false;
+
+template<typename T>
+constexpr bool IsSame<T, T> = true;
+
+template<typename T, typename... Ts>
+constexpr bool AreSame = (IsSame<T, Ts> && ...);
+
 template<typename T>
 using RemoveReference = typename detail::RemoveReference<T>::Type;
 
