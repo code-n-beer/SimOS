@@ -5,6 +5,7 @@
 #include <simo/utils.h>
 #include <printf.h>
 #include <stl/tuple.h>
+#include <stl/bit.h>
 
 namespace memory
 {
@@ -20,17 +21,32 @@ const size_t PAGE_SIZE = 0x1000;
 
 constexpr PhysicalAddress alignToPage(PhysicalAddress addr)
 {
-    return PhysicalAddress { ((static_cast<uint64_t>(addr) - 1) + PAGE_SIZE) & ~(PAGE_SIZE - 1) };
+    return PhysicalAddress{stl::align(PAGE_SIZE, static_cast<uint64_t>(addr))};
 }
 
 class PhysicalFrameMap
 {
 public:
     PhysicalFrameMap(PhysicalAddress memoryBase, size_t memorySize) :
-        m_memoryBase(memoryBase), 
-        m_bitmapSize((memorySize / PAGE_SIZE) / (sizeof(uint64_t) * 8))
+        m_memoryBase(memoryBase), m_bitmapSize(stl::align(64, memorySize / PAGE_SIZE) / 64)
     {
         memset(m_bitmap, 0, m_bitmapSize * sizeof(uint64_t));
+    }
+
+    PhysicalAddress allocateFrame()
+    {
+        if (auto frame = getNextFreeFrame(); frame != PhysicalAddress::Null) {
+            markFrame(frame, true);
+            return frame;
+        }
+
+        return PhysicalAddress::Null;
+    }
+
+    void freeFrame(PhysicalAddress frame)
+    {
+        // TODO: bounds checking
+        markFrame(frame, false);
     }
 
     PhysicalAddress getNextFreeFrame()
@@ -186,26 +202,21 @@ void setupPageTables(const MultibootBasicInfo* multibootInfo)
         g_physFrameMap->markFrame(ptr, true);
     }
 
-    // TODO: getNextFreePage + markPage -> PhysicalPageMap::allocateFrame
-    auto pml4PA = g_physFrameMap->getNextFreeFrame();
+    auto pml4PA = g_physFrameMap->allocateFrame();
     auto pml4 = new (identityMappedPhysicalToVirtual(pml4PA)) PML4();
-    g_physFrameMap->markFrame(pml4PA, true);
     printf("PML4 is at %016lx\n", uint64_t(pml4PA));
 
-    auto pdptPA = g_physFrameMap->getNextFreeFrame();
+    auto pdptPA = g_physFrameMap->allocateFrame();
     auto pdpt = new (identityMappedPhysicalToVirtual(pdptPA)) PDPT();
     printf("PDPT is at %016lx\n", uint64_t(pdptPA));
-    g_physFrameMap->markFrame(pdptPA, true);
 
-    auto pdpt2PA = g_physFrameMap->getNextFreeFrame();
+    auto pdpt2PA = g_physFrameMap->allocateFrame();
     auto pdpt2 = new (identityMappedPhysicalToVirtual(pdpt2PA)) PDPT();
     printf("PDPT2 is at %016lx\n", uint64_t(pdpt2PA));
-    g_physFrameMap->markFrame(pdpt2PA, true);
 
-    auto pdPA = g_physFrameMap->getNextFreeFrame();
+    auto pdPA = g_physFrameMap->allocateFrame();
     auto pd = new (identityMappedPhysicalToVirtual(pdPA)) PD();
     printf("PD is at %016lx\n", uint64_t(pdPA));
-    g_physFrameMap->markFrame(pdPA, true);
 
     // TODO: finish this
     auto va = (void*)0xffff'ffff'8000'0000ull;

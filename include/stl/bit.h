@@ -25,4 +25,10 @@ constexpr T bitmask(size_t to, size_t from)
     return result;
 }
 
+template<typename T>
+constexpr T align(size_t alignment, T value)
+{
+    return ((value - 1) + alignment) & ~(alignment - 1);
+}
+
 }
