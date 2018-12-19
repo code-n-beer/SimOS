@@ -20,7 +20,7 @@ const size_t PAGE_SIZE = 0x1000;
 
 constexpr PhysicalAddress alignToPage(PhysicalAddress addr)
 {
-    return ((addr - 1) + PAGE_SIZE) & ~(PAGE_SIZE - 1);
+    return PhysicalAddress { ((static_cast<uint64_t>(addr) - 1) + PAGE_SIZE) & ~(PAGE_SIZE - 1) };
 }
 
 class PhysicalFrameMap
@@ -46,7 +46,7 @@ public:
             addr += PAGE_SIZE;
         }
 
-        return 0ull;
+        return PhysicalAddress::Null;
     }
 
     void markFrame(PhysicalAddress address, bool used)
@@ -85,7 +85,7 @@ public:
 private:
     stl::Tuple<size_t, uint64_t> computeEntryIndexAndMask(PhysicalAddress address) const
     {
-        const auto frameIdx = ((address - m_memoryBase) / PAGE_SIZE);
+        const auto frameIdx = ((static_cast<uint64_t>(address) - static_cast<uint64_t>(m_memoryBase)) / PAGE_SIZE);
         const auto entryIdx = frameIdx / (sizeof(uint64_t) * 8);
         const auto shift = frameIdx % (sizeof(uint64_t) * 8);
         const auto mask = 1UL << shift;
@@ -113,11 +113,22 @@ MmapEntry findBiggestMemoryArea(const MmapTag* mmap)
     return biggest;
 }
 
+PhysicalAddress identityMappedVirtualToPhysical(const void* addr)
+{
+    return PhysicalAddress{reinterpret_cast<uint64_t>(addr)};
+}
+
+template<typename T = void>
+T* identityMappedPhysicalToVirtual(PhysicalAddress addr)
+{
+    return reinterpret_cast<T*>(static_cast<uint64_t>(addr));
+}
+
 // the name is pretty misleading, there's no guarantee that there's actual physical memory after
 // the multiboot structure, but whatever
 PhysicalAddress getFirstSafePhysicalAddress(const MultibootBasicInfo* multibootInfo)
 {
-    auto physAddr = reinterpret_cast<PhysicalAddress>(multibootInfo);
+    auto physAddr = identityMappedVirtualToPhysical(multibootInfo);
     physAddr += multibootInfo->totalSize;
 
     return alignToPage(physAddr);
@@ -127,7 +138,7 @@ PhysicalFrameMap* initPhysicalFrameMap(const MmapTag* mmap, void* addr)
 {
     const auto mem = findBiggestMemoryArea(mmap);
     printf("Physical memory at %016lx (size 0x%lx)\n", mem.addr, mem.len);
-    return new (addr) PhysicalFrameMap(mem.addr, mem.len);
+    return new (addr) PhysicalFrameMap(PhysicalAddress{mem.addr}, mem.len);
 }
 
 stl::Tuple<const ElfSectionsTag*, const MmapTag*> getMultibootTags(const MultibootBasicInfo* multibootInfo)
@@ -155,56 +166,56 @@ void setupPageTables(const MultibootBasicInfo* multibootInfo)
 
     auto physFrameMapPA = getFirstSafePhysicalAddress(multibootInfo);
     // virtual address is physical + 0xffffffff80000000 at this point
-    auto physFrameMapVA = reinterpret_cast<void*>(physFrameMapPA + 0xffff'ffff'8000'0000ull);
+    auto physFrameMapVA = identityMappedPhysicalToVirtual(physFrameMapPA + 0xffff'ffff'8000'0000ull);
 
-    g_physFrameMap = initPhysicalFrameMap(memoryMap, reinterpret_cast<void*>(physFrameMapVA));
+    g_physFrameMap = initPhysicalFrameMap(memoryMap, physFrameMapVA);
     const auto physFrameMapEndPA = alignToPage(physFrameMapPA + g_physFrameMap->getByteSize());
 
-    auto startPtr = reinterpret_cast<PhysicalAddress>(&_kernelPhysicalStart);
-    auto endPtr = reinterpret_cast<PhysicalAddress>(&_kernelPhysicalEnd);
+    auto startPtr = identityMappedVirtualToPhysical(&_kernelPhysicalStart);
+    auto endPtr = identityMappedVirtualToPhysical(&_kernelPhysicalEnd);
 
     // reserve the physical memory where the kernel was loaded
-    printf("Reserving %016lx-%016lx...\n", startPtr, endPtr);
+    printf("Reserving %016lx-%016lx...\n", uint64_t(startPtr), uint64_t(endPtr));
     for (auto ptr = startPtr; ptr < endPtr; ptr += 0x1000) {
-        g_physFrameMap->markFrame(reinterpret_cast<PhysicalAddress>(ptr), true);
+        g_physFrameMap->markFrame(ptr, true);
     }
 
     // reserve the physical memory used by the frame allocator
-    printf("Reserving %016lx-%016lx...\n", physFrameMapPA, physFrameMapEndPA);
+    printf("Reserving %016lx-%016lx...\n", uint64_t(physFrameMapPA), uint64_t(physFrameMapEndPA));
     for (auto ptr = physFrameMapPA; ptr < physFrameMapEndPA; ptr += 0x1000) {
         g_physFrameMap->markFrame(ptr, true);
     }
 
     // TODO: getNextFreePage + markPage -> PhysicalPageMap::allocateFrame
     auto pml4PA = g_physFrameMap->getNextFreeFrame();
-    auto pml4 = new (reinterpret_cast<void*>(pml4PA)) PML4();
+    auto pml4 = new (identityMappedPhysicalToVirtual(pml4PA)) PML4();
     g_physFrameMap->markFrame(pml4PA, true);
-    printf("PML4 is at %016lx\n", pml4PA);
+    printf("PML4 is at %016lx\n", uint64_t(pml4PA));
 
     auto pdptPA = g_physFrameMap->getNextFreeFrame();
-    auto pdpt = new (reinterpret_cast<void*>(pdptPA)) PDPT();
-    printf("PDPT is at %016lx\n", pdptPA);
+    auto pdpt = new (identityMappedPhysicalToVirtual(pdptPA)) PDPT();
+    printf("PDPT is at %016lx\n", uint64_t(pdptPA));
     g_physFrameMap->markFrame(pdptPA, true);
 
     auto pdpt2PA = g_physFrameMap->getNextFreeFrame();
-    auto pdpt2 = new (reinterpret_cast<void*>(pdpt2PA)) PDPT();
-    printf("PDPT2 is at %016lx\n", pdpt2PA);
+    auto pdpt2 = new (identityMappedPhysicalToVirtual(pdpt2PA)) PDPT();
+    printf("PDPT2 is at %016lx\n", uint64_t(pdpt2PA));
     g_physFrameMap->markFrame(pdpt2PA, true);
 
     auto pdPA = g_physFrameMap->getNextFreeFrame();
-    auto pd = new (reinterpret_cast<void*>(pdPA)) PD();
-    printf("PD is at %016lx\n", pdPA);
+    auto pd = new (identityMappedPhysicalToVirtual(pdPA)) PD();
+    printf("PD is at %016lx\n", uint64_t(pdPA));
     g_physFrameMap->markFrame(pdPA, true);
 
     // TODO: finish this
     auto va = (void*)0xffff'ffff'8000'0000ull;
     auto va2 = (void*)0x0000'0000'000b'8000ull;
     pml4->entryFromAddress(va).set(pdptPA, PMEFlags::Present, PMEFlags::Write);
-    pdpt->entryFromAddress(va).set(0, PMEFlags::PageSize, PMEFlags::Present, PMEFlags::Write);
+    pdpt->entryFromAddress(va).set(PhysicalAddress::Null, PMEFlags::PageSize, PMEFlags::Present, PMEFlags::Write);
 
     pml4->entryFromAddress(va2).set(pdpt2PA, PMEFlags::Present, PMEFlags::Write);
     pdpt2->entryFromAddress(va2).set(pdPA, PMEFlags::Present, PMEFlags::Write);
-    pd->entryFromAddress(va2).set(0, PMEFlags::PageSize, PMEFlags::Present, PMEFlags::Write);
+    pd->entryFromAddress(va2).set(PhysicalAddress::Null, PMEFlags::PageSize, PMEFlags::Present, PMEFlags::Write);
 
     asm volatile(R"(
         movq %0, %%rax

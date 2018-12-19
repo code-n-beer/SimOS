@@ -63,7 +63,7 @@ struct PageMapEntry
             }
         }
 
-        return raw & mask;
+        return PhysicalAddress{raw & mask};
     }
 
     constexpr void setPhysicalAddress(PhysicalAddress address)
@@ -76,7 +76,7 @@ struct PageMapEntry
             }
         }
 
-        raw = (raw & ~mask) | (address & mask);
+        raw = (raw & ~mask) | (static_cast<uint64_t>(address) & mask);
     }
 
     template<typename... Ts>
