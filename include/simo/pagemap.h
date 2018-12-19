@@ -5,6 +5,8 @@
 
 #include <simo/memory.h>
 #include <stl/bit.h>
+#include <stl/flags.h>
+#include <stl/typetraits.h>
 
 // TODO: move these somewhere else
 
@@ -20,153 +22,126 @@ namespace memory
 using stl::bit;
 using stl::bitmask;
 
+enum class PMEFlags : uint64_t
+{
+    Present             = bit(0),
+    Write               = bit(1),
+    Supervisor          = bit(2),
+    PageWriteThrough    = bit(3),
+    PageCacheDisable    = bit(4),
+    Accessed            = bit(5),
+    Dirty               = bit(6),
+    PageSize            = bit(7),
+    ExecuteDisable      = bit(63),
+};
+
+template<
+    uint64_t PhysAddrMask,
+    uint64_t PhysAddrMaskPage,
+    PMEFlags... DisabledFlags>
+struct PageMapEntry
+{
+    uint64_t raw;
+
+    PageMapEntry() = default;
+    PageMapEntry(const PageMapEntry&) = default;
+
+    PageMapEntry(PhysicalAddress address, stl::Flags<PMEFlags> flags)
+    {
+        setFlags(flags);
+        setPhysicalAddress(address);
+    }
+
+    bool hasFlags(stl::Flags<PMEFlags> flags) const
+    {
+        flags &= ~disabledFlags;
+        return (raw & flags) != 0;
+    }
+
+    void setFlags(stl::Flags<PMEFlags> flags)
+    {
+        flags &= ~disabledFlags;
+        raw |= flags.value();
+    }
+
+    PhysicalAddress getPhysicalAddress() const
+    {
+        uint64_t mask = PhysAddrMask;
+
+        if constexpr(canMapPage) {
+            if (hasFlags(PMEFlags::PageSize)) {
+                mask = PhysAddrMaskPage;
+            }
+        }
+
+        return raw & mask;
+    }
+
+    void setPhysicalAddress(PhysicalAddress address)
+    {
+        uint64_t mask = PhysAddrMask;
+
+        if constexpr(canMapPage) {
+            if (hasFlags(PMEFlags::PageSize)) {
+                mask = PhysAddrMaskPage;
+            }
+        }
+
+        raw = (raw & ~mask) | (address & mask);
+    }
+
+    template<typename... Ts>
+    void set(PhysicalAddress addr, Ts... flags)
+    {
+        setFlags({flags...});
+        setPhysicalAddress(addr);
+    }
+
+private:
+    static constexpr stl::Flags<PMEFlags> disabledFlags{DisabledFlags...};
+    static constexpr bool canMapPage = !(disabledFlags & PMEFlags::PageSize);
+};
+
 // Intel docs says MAXPHYADDR is at most 52 on current platforms and I'd rather not deal with CPUID now
 // so I'll just pretend it's always 52
 const size_t MAXPHYADDR = 52;
 
-struct PML4E
-{
-    uint64_t raw;
+using PML4E = PageMapEntry<
+    bitmask(MAXPHYADDR - 1, 12),        // PhysAddrMask
+    0,                                  // PhysAddrMaskPage
+    PMEFlags::Dirty, PMEFlags::PageSize // DisabledFlags
+>;
 
-    static const uint64_t PHYS_ADDR_MASK = bitmask(MAXPHYADDR - 1, 12);
+using PDPTE = PageMapEntry<
+    bitmask(MAXPHYADDR - 1, 12),        // PhysAddrMask
+    bitmask(MAXPHYADDR - 1, 30)         // PhysAddrMaskPage
+>;
 
-    enum Flags : uint64_t
-    {
-        Present             = bit(0),
-        Write               = bit(1),
-        Supervisor          = bit(2),
-        PageWriteThrough    = bit(3),
-        PageCacheDisable    = bit(4),
-        Accessed            = bit(5),
-        ExecuteDisable      = bit(63),
-    };
+using PDE = PageMapEntry<
+    bitmask(MAXPHYADDR - 1, 12),        // PhysAddrMask
+    bitmask(MAXPHYADDR - 1, 21)         // PhysAddrMaskPage
+>;
 
-    bool isPresent() const              { return hasBit(raw, Present); }
-    bool isWritable() const             { return hasBit(raw, Write); }
-    bool isAccessed() const             { return hasBit(raw, Accessed); }
-
-    PhysicalAddress getPhysicalAddress() const
-    {
-        return raw & PHYS_ADDR_MASK;
-    }
-};
-
-struct PDPTE
-{
-    uint64_t raw;
-
-    static const uint64_t PHYS_ADDR_MASK = bitmask(MAXPHYADDR - 1, 12);
-    static const uint64_t PHYS_ADDR_MASK_PAGE = bitmask(MAXPHYADDR - 1, 30);
-
-    enum Flags : uint64_t
-    {
-        Present             = bit(0),
-        Write               = bit(1),
-        Supervisor          = bit(2),
-        PageWriteThrough    = bit(3),
-        PageCacheDisable    = bit(4),
-        Accessed            = bit(5),
-        Dirty               = bit(6),
-        PageSize            = bit(7),
-        ExecuteDisable      = bit(63),
-    };
-
-    bool isPresent() const              { return hasBit(raw, Present); }
-    bool isWritable() const             { return hasBit(raw, Write); }
-    bool isAccessed() const             { return hasBit(raw, Accessed); }
-    bool isPage() const                 { return hasBit(raw, PageSize); }
-    bool isDirty() const                { return hasBit(raw, Dirty); }
-
-    PhysicalAddress getPhysicalAddress() const
-    {
-        if (isPage()) {
-            return raw & PHYS_ADDR_MASK_PAGE;
-        }
-
-        return raw & PHYS_ADDR_MASK;
-    }
-};
-
-struct PDE
-{
-    uint64_t raw;
-
-    static const uint64_t PHYS_ADDR_MASK = bitmask(MAXPHYADDR - 1, 12);
-    static const uint64_t PHYS_ADDR_MASK_PAGE = bitmask(MAXPHYADDR - 1, 21);
-
-    enum Flags : uint64_t
-    {
-        Present             = bit(0),
-        Write               = bit(1),
-        Supervisor          = bit(2),
-        PageWriteThrough    = bit(3),
-        PageCacheDisable    = bit(4),
-        Accessed            = bit(5),
-        Dirty               = bit(6),
-        PageSize            = bit(7),
-        ExecuteDisable      = bit(63),
-    };
-
-    bool isPresent() const              { return hasBit(raw, Present); }
-    bool isWritable() const             { return hasBit(raw, Write); }
-    bool isAccessed() const             { return hasBit(raw, Accessed); }
-    bool isPage() const                 { return hasBit(raw, PageSize); }
-    bool isDirty() const                { return hasBit(raw, Dirty); }
-
-    PhysicalAddress getPhysicalAddress() const
-    {
-        if (isPage()) {
-            return raw & PHYS_ADDR_MASK_PAGE;
-        }
-
-        return raw & PHYS_ADDR_MASK;
-    }
-};
-
-struct PTE
-{
-    uint64_t raw;
-
-    static const uint64_t PHYS_ADDR_MASK = bitmask(MAXPHYADDR - 1, 12);
-
-    enum Flags : uint64_t
-    {
-        Present             = bit(0),
-        Write               = bit(1),
-        Supervisor          = bit(2),
-        PageWriteThrough    = bit(3),
-        PageCacheDisable    = bit(4),
-        Accessed            = bit(5),
-        Dirty               = bit(6),
-        ExecuteDisable      = bit(63),
-    };
-
-    bool isPresent() const              { return hasBit(raw, Present); }
-    bool isWritable() const             { return hasBit(raw, Write); }
-    bool isAccessed() const             { return hasBit(raw, Accessed); }
-    bool isDirty() const                { return hasBit(raw, Dirty); }
-
-    PhysicalAddress getPhysicalAddress() const
-    {
-        return raw & PHYS_ADDR_MASK;
-    }
-};
+using PTE = PageMapEntry<
+    bitmask(MAXPHYADDR - 1, 12),        // PhysAddrMask
+    bitmask(MAXPHYADDR - 1, 21),        // PhysAddrMaskPage
+    PMEFlags::PageSize                  // DisabledFlags
+>;
 
 template<typename T>
-concept bool ValidPageMapEntry = requires {
-    sizeof(T) == 8;
-    { T::PHYS_ADDR_MASK } -> uint64_t;
-    typename T::Flags;
-};
+concept bool ValidPageMapEntry =
+    stl::concepts::IsTrivial<T>
+    && stl::concepts::IsStandardLayout<T>
+    && requires {
+        sizeof(T) == sizeof(uint64_t);
+    };
 
-template<typename TEntry, size_t VirtAddrShift> requires ValidPageMapEntry<TEntry>
+template<size_t S>
+concept bool ValidAddrShift = (S >= 12) && (S <= 39);
+
+template<ValidPageMapEntry TEntry, ValidAddrShift VirtAddrShift>
 struct PageMapBase
 {
-    static_assert(sizeof(TEntry) == sizeof(uint64_t), "Page maps must have 8-byte entries!");
-    static_assert(VirtAddrShift >= 12);
-    static_assert(__is_trivial(TEntry));
-    static_assert(__is_standard_layout(TEntry));
-
     TEntry entries[512];
 
     uint64_t indexFromAddress(const void* addr) const

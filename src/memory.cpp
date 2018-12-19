@@ -199,12 +199,12 @@ void setupPageTables(const MultibootBasicInfo* multibootInfo)
     // TODO: finish this
     auto va = (void*)0xffff'ffff'8000'0000ull;
     auto va2 = (void*)0x0000'0000'000b'8000ull;
-    pml4->entryFromAddress(va) = { pdptPA | PML4E::Present | PML4E::Write };
-    pdpt->entryFromAddress(va) = { 0UL | PDPTE::PageSize | PDPTE::Present | PDPTE::Write };
+    pml4->entryFromAddress(va).set(pdptPA, PMEFlags::Present, PMEFlags::Write);
+    pdpt->entryFromAddress(va).set(0, PMEFlags::PageSize, PMEFlags::Present, PMEFlags::Write);
 
-    pml4->entryFromAddress(va2) = { pdpt2PA | PML4E::Present | PML4E::Write };
-    pdpt2->entryFromAddress(va2) = { pdPA | PDPTE::Present | PDPTE::Write };
-    pd->entryFromAddress(va2) = { 0UL | PDE::Present | PDE::PageSize | PDE::Write };
+    pml4->entryFromAddress(va2).set(pdpt2PA, PMEFlags::Present, PMEFlags::Write);
+    pdpt2->entryFromAddress(va2).set(pdPA, PMEFlags::Present, PMEFlags::Write);
+    pd->entryFromAddress(va2).set(0, PMEFlags::PageSize, PMEFlags::Present, PMEFlags::Write);
 
     asm volatile(
         "movq %0, %%rax\n"
