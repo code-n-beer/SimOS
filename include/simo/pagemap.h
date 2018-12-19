@@ -4,13 +4,9 @@
 #include <stddef.h>
 
 #include <simo/memory.h>
+#include <stl/bit.h>
 
 // TODO: move these somewhere else
-template<typename T = uint64_t>
-constexpr T bit(size_t offset)
-{
-    return T(1) << offset;
-}
 
 template<typename T, typename U>
 constexpr bool hasBit(T value, U bits)
@@ -18,30 +14,15 @@ constexpr bool hasBit(T value, U bits)
     return (value & static_cast<T>(bits)) != 0;
 }
 
-constexpr uint64_t bitmask(size_t to, size_t from)
-{
-    uint64_t result = 0;
-
-    while (to >= from) {
-        result |= 1UL << to;
-        to--;
-    }
-
-    return result;
-}
-
 namespace memory
 {
+
+using stl::bit;
+using stl::bitmask;
 
 // Intel docs says MAXPHYADDR is at most 52 on current platforms and I'd rather not deal with CPUID now
 // so I'll just pretend it's always 52
 const size_t MAXPHYADDR = 52;
-
-template<typename T>
-struct PageMapEntryBase
-{
-    uint64_t raw;
-};
 
 struct PML4E
 {
