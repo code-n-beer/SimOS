@@ -56,4 +56,10 @@ private:
     ValueType m_value{};
 };
 
+template<typename TFlag, typename T = typename Flags<TFlag>::ValueType>
+constexpr T operator&(T a, const Flags<TFlag>& b)
+{
+    return static_cast<T>(a & b.value());
+}
+
 }
