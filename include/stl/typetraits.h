@@ -42,10 +42,16 @@ template<typename T, typename... Ts>
 constexpr bool AreSame = (IsSame<T, Ts> && ...);
 
 template<typename T>
-using RemoveReference = typename detail::RemoveReference<T>::Type;
+constexpr bool IsEmpty = __is_empty(T);
 
 template<typename T>
-constexpr bool IsEmpty = __is_empty(T);
+constexpr bool IsTrivial = __is_trivial(T);
+
+template<typename T>
+constexpr bool IsStandardLayout = __is_standard_layout(T);
+
+template<typename T>
+constexpr bool IsEnum = __is_enum(T);
 
 template<typename T> constexpr bool IsLvalueReference       = false;
 template<typename T> constexpr bool IsLvalueReference<T&>   = true;
@@ -54,6 +60,9 @@ template<typename T> constexpr bool IsRvalueReference       = false;
 template<typename T> constexpr bool IsRvalueReference<T&&>  = true;
 
 template<typename T> constexpr bool IsReference = IsLvalueReference<T> || IsRvalueReference<T>;
+
+template<typename T>
+using RemoveReference = typename detail::RemoveReference<T>::Type;
 
 template<typename T>
 constexpr T&& forward(RemoveReference<T>& t) noexcept
@@ -69,5 +78,37 @@ constexpr T&& forward(RemoveReference<T>&& t) noexcept
 
 template<typename T>
 T&& declval() noexcept;
+
+}
+
+namespace stl::concepts
+{
+
+template<typename T, typename U>
+concept bool IsSame = stl::IsSame<T, U>;
+
+template<typename T, typename... Ts>
+concept bool AreSame = stl::AreSame<T, Ts...>;
+
+template<typename T>
+concept bool IsEmpty = stl::IsEmpty<T>;
+
+template<typename T>
+concept bool IsTrivial = stl::IsTrivial<T>;
+
+template<typename T>
+concept bool IsStandardLayout = stl::IsStandardLayout<T>;
+
+template<typename T>
+concept bool IsLvalueReference = stl::IsLvalueReference<T>;
+
+template<typename T>
+concept bool IsRvalueReference = stl::IsRvalueReference<T>;
+
+template<typename T>
+concept bool IsReference = stl::IsReference<T>;
+
+template<typename T>
+concept bool IsEnum = stl::IsEnum<T>;
 
 }
