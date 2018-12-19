@@ -8,31 +8,20 @@
 #include <stl/flags.h>
 #include <stl/typetraits.h>
 
-// TODO: move these somewhere else
-
-template<typename T, typename U>
-constexpr bool hasBit(T value, U bits)
-{
-    return (value & static_cast<T>(bits)) != 0;
-}
-
 namespace memory
 {
 
-using stl::bit;
-using stl::bitmask;
-
 enum class PMEFlags : uint64_t
 {
-    Present             = bit(0),
-    Write               = bit(1),
-    Supervisor          = bit(2),
-    PageWriteThrough    = bit(3),
-    PageCacheDisable    = bit(4),
-    Accessed            = bit(5),
-    Dirty               = bit(6),
-    PageSize            = bit(7),
-    ExecuteDisable      = bit(63),
+    Present             = stl::bit(0),
+    Write               = stl::bit(1),
+    Supervisor          = stl::bit(2),
+    PageWriteThrough    = stl::bit(3),
+    PageCacheDisable    = stl::bit(4),
+    Accessed            = stl::bit(5),
+    Dirty               = stl::bit(6),
+    PageSize            = stl::bit(7),
+    ExecuteDisable      = stl::bit(63),
 };
 
 template<
@@ -43,28 +32,28 @@ struct PageMapEntry
 {
     uint64_t raw;
 
-    PageMapEntry() = default;
-    PageMapEntry(const PageMapEntry&) = default;
+    constexpr PageMapEntry() = default;
+    constexpr PageMapEntry(const PageMapEntry&) = default;
 
-    PageMapEntry(PhysicalAddress address, stl::Flags<PMEFlags> flags)
+    constexpr PageMapEntry(PhysicalAddress address, stl::Flags<PMEFlags> flags)
     {
         setFlags(flags);
         setPhysicalAddress(address);
     }
 
-    bool hasFlags(stl::Flags<PMEFlags> flags) const
+    constexpr bool hasFlags(stl::Flags<PMEFlags> flags) const
     {
         flags &= ~disabledFlags;
         return (raw & flags) != 0;
     }
 
-    void setFlags(stl::Flags<PMEFlags> flags)
+    constexpr void setFlags(stl::Flags<PMEFlags> flags)
     {
         flags &= ~disabledFlags;
         raw |= flags.value();
     }
 
-    PhysicalAddress getPhysicalAddress() const
+    constexpr PhysicalAddress getPhysicalAddress() const
     {
         uint64_t mask = PhysAddrMask;
 
@@ -77,7 +66,7 @@ struct PageMapEntry
         return raw & mask;
     }
 
-    void setPhysicalAddress(PhysicalAddress address)
+    constexpr void setPhysicalAddress(PhysicalAddress address)
     {
         uint64_t mask = PhysAddrMask;
 
@@ -91,7 +80,7 @@ struct PageMapEntry
     }
 
     template<typename... Ts>
-    void set(PhysicalAddress addr, Ts... flags)
+    constexpr void set(PhysicalAddress addr, Ts... flags)
     {
         setFlags({flags...});
         setPhysicalAddress(addr);
@@ -107,24 +96,24 @@ private:
 const size_t MAXPHYADDR = 52;
 
 using PML4E = PageMapEntry<
-    bitmask(MAXPHYADDR - 1, 12),        // PhysAddrMask
+    stl::bitmask(MAXPHYADDR - 1, 12),   // PhysAddrMask
     0,                                  // PhysAddrMaskPage
     PMEFlags::Dirty, PMEFlags::PageSize // DisabledFlags
 >;
 
 using PDPTE = PageMapEntry<
-    bitmask(MAXPHYADDR - 1, 12),        // PhysAddrMask
-    bitmask(MAXPHYADDR - 1, 30)         // PhysAddrMaskPage
+    stl::bitmask(MAXPHYADDR - 1, 12),   // PhysAddrMask
+    stl::bitmask(MAXPHYADDR - 1, 30)    // PhysAddrMaskPage
 >;
 
 using PDE = PageMapEntry<
-    bitmask(MAXPHYADDR - 1, 12),        // PhysAddrMask
-    bitmask(MAXPHYADDR - 1, 21)         // PhysAddrMaskPage
+    stl::bitmask(MAXPHYADDR - 1, 12),   // PhysAddrMask
+    stl::bitmask(MAXPHYADDR - 1, 21)    // PhysAddrMaskPage
 >;
 
 using PTE = PageMapEntry<
-    bitmask(MAXPHYADDR - 1, 12),        // PhysAddrMask
-    bitmask(MAXPHYADDR - 1, 21),        // PhysAddrMaskPage
+    stl::bitmask(MAXPHYADDR - 1, 12),   // PhysAddrMask
+    stl::bitmask(MAXPHYADDR - 1, 21),   // PhysAddrMaskPage
     PMEFlags::PageSize                  // DisabledFlags
 >;
 
@@ -143,6 +132,10 @@ template<ValidPageMapEntry TEntry, ValidAddrShift VirtAddrShift>
 struct PageMapBase
 {
     TEntry entries[512];
+
+    PageMapBase() :
+        entries{{}}
+    {}
 
     uint64_t indexFromAddress(const void* addr) const
     {
