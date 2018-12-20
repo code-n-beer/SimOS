@@ -17,6 +17,12 @@ extern "C" uint8_t _kernelPhysicalEnd;
 extern "C" uint8_t _bootEnd;
 extern "C" uint8_t _stack_bottom;
 
+using multiboot::MemoryType;
+using multiboot::MmapEntry;
+using multiboot::MmapTag;
+using multiboot::TagType;
+using multiboot::ElfSectionsTag;
+
 const size_t PAGE_SIZE = 0x1000;
 
 constexpr PhysicalAddress alignToPage(PhysicalAddress addr)
@@ -142,7 +148,7 @@ T* identityMappedPhysicalToVirtual(PhysicalAddress addr)
 
 // the name is pretty misleading, there's no guarantee that there's actual physical memory after
 // the multiboot structure, but whatever
-PhysicalAddress getFirstSafePhysicalAddress(const MultibootBasicInfo* multibootInfo)
+PhysicalAddress getFirstSafePhysicalAddress(const multiboot::Info* multibootInfo)
 {
     auto physAddr = identityMappedVirtualToPhysical(multibootInfo);
     physAddr += multibootInfo->totalSize;
@@ -157,7 +163,7 @@ PhysicalFrameMap* initPhysicalFrameMap(const MmapTag* mmap, void* addr)
     return new (addr) PhysicalFrameMap(PhysicalAddress{mem.addr}, mem.len);
 }
 
-stl::Tuple<const ElfSectionsTag*, const MmapTag*> getMultibootTags(const MultibootBasicInfo* multibootInfo)
+stl::Tuple<const ElfSectionsTag*, const MmapTag*> getMultibootTags(const multiboot::Info* multibootInfo)
 {
     const ElfSectionsTag* elfSections = nullptr;
     const MmapTag* memoryMap = nullptr;
@@ -175,7 +181,7 @@ stl::Tuple<const ElfSectionsTag*, const MmapTag*> getMultibootTags(const Multibo
 
 PhysicalFrameMap* g_physFrameMap = nullptr;
 
-void setupPageTables(const MultibootBasicInfo* multibootInfo)
+void setupPageTables(const multiboot::Info* multibootInfo)
 {
     auto [elfSections, memoryMap] = getMultibootTags(multibootInfo);
     // TODO: assert(elfSections && memoryMap);
@@ -238,7 +244,7 @@ void setupPageTables(const MultibootBasicInfo* multibootInfo)
     printf("No longer running with identity mapping \\:D/\n");
 }
 
-void init(const MultibootBasicInfo* multibootInfo)
+void init(const multiboot::Info* multibootInfo)
 {
     setupPageTables(multibootInfo);
     printf("if you're reading this, memory mapping actually work\n");

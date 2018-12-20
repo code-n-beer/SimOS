@@ -2,7 +2,12 @@
 
 #include <stdint.h>
 
-struct MultibootBasicInfo;
+namespace multiboot
+{
+
+struct Info;
+
+}
 
 namespace memory
 {
@@ -39,6 +44,6 @@ constexpr bool operator<(PhysicalAddress a, PhysicalAddress b)
     return static_cast<uint64_t>(a) < static_cast<uint64_t>(b);
 }
 
-void init(const MultibootBasicInfo*);
+void init(const multiboot::Info*);
 
 }

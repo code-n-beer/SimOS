@@ -8,18 +8,18 @@
 #include <simo/elf.h>
 #include <simo/memory.h>
 
-void dumpTag(const MmapTag& mmapTag)
+void dumpTag(const multiboot::MmapTag& mmapTag)
 {
     printf("Memory map:\n");
 
-    auto numEntries = (mmapTag.size - sizeof(MmapTag)) / mmapTag.entrySize;
+    auto numEntries = (mmapTag.size - sizeof(multiboot::MmapTag)) / mmapTag.entrySize;
     for (uint32_t i = 0; i < numEntries; i++) {
         const auto& entry = mmapTag.entries[i];
         printf("    addr: %016lx, len: %016lx, type: %d\n", entry.addr, entry.len, int(entry.type));
     }
 }
 
-void dumpTag(const ElfSectionsTag& tag)
+void dumpTag(const multiboot::ElfSectionsTag& tag)
 {
     /*
     Elf64_Word  sh_name;    // Section name (index into the section header string table).
@@ -54,14 +54,14 @@ void dumpTag(const ElfSectionsTag& tag)
     }
 }
 
-void dumpMultibootInfo(const MultibootBasicInfo* info)
+void dumpMultibootInfo(const multiboot::Info* info)
 {
     for (const auto& tag : info) {
         switch (tag.type) {
-        case TagType::Mmap:
-            dumpTag(static_cast<const MmapTag&>(tag));
+        case multiboot::TagType::Mmap:
+            dumpTag(static_cast<const multiboot::MmapTag&>(tag));
             break;
-        case TagType::ElfSections:
+        case multiboot::TagType::ElfSections:
             //dumpTag(static_cast<const ElfSectionsTag&>(tag));
             break;
         default:
@@ -70,10 +70,10 @@ void dumpMultibootInfo(const MultibootBasicInfo* info)
     }
 }
 
-extern "C" void kmain(const MultibootBasicInfo* basicInfo)
+extern "C" void kmain(const multiboot::Info* info)
 {
     console::init();
-    memory::init(basicInfo);
+    memory::init(info);
 
     __asm__("hlt");
 }

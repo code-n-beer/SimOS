@@ -1,8 +1,10 @@
 #pragma once
 
 #include <stdint.h>
+#include <stl/bit.h>
 
-#define PACKED __attribute__((packed))
+namespace multiboot
+{
 
 enum class TagType : uint32_t
 {
@@ -39,7 +41,7 @@ enum class MemoryType : uint32_t
     BadRam = 5,
 };
 
-struct PACKED MmapEntry
+struct [[gnu::packed]] MmapEntry
 {
     uint64_t addr;
     uint64_t len;
@@ -47,55 +49,55 @@ struct PACKED MmapEntry
     uint32_t zero;
 };
 
-struct PACKED Tag
+struct [[gnu::packed]] Tag
 {
     TagType type;
     uint32_t size;
 };
 
-struct PACKED StringTag : public Tag
+struct [[gnu::packed]] StringTag : public Tag
 {
     char string[0];
 };
 
-struct PACKED ModuleTag : public Tag
+struct [[gnu::packed]] ModuleTag : public Tag
 {
     uint32_t modStart;
     uint32_t modEnd;
     char cmdline[0];
 };
 
-struct PACKED BasicMeminfoTag : public Tag
+struct [[gnu::packed]] BasicMeminfoTag : public Tag
 {
     uint32_t memLower;
     uint32_t memUpper;
 };
 
-struct PACKED BootdevTag : public Tag
+struct [[gnu::packed]] BootdevTag : public Tag
 {
     uint32_t biosdev;
     uint32_t slice;
     uint32_t part;
 };
 
-struct PACKED MmapTag : public Tag
+struct [[gnu::packed]] MmapTag : public Tag
 {
     uint32_t entrySize;
     uint32_t entryVersion;
     MmapEntry entries[0];
 };
 
-struct PACKED VbeInfoBlock
+struct [[gnu::packed]] VbeInfoBlock
 {
     uint8_t externalSpecification[512];
 };
 
-struct PACKED VbeModeInfoBlock
+struct [[gnu::packed]] VbeModeInfoBlock
 {
     uint8_t externalSpecification[256];
 };
 
-struct PACKED VbeTag : public Tag
+struct [[gnu::packed]] VbeTag : public Tag
 {
     uint16_t vbeMode;
     uint16_t vbeInterfaceSeg;
@@ -113,7 +115,7 @@ enum class FramebufferType : uint32_t
     EgaText = 2,
 };
 
-struct PACKED FramebufferCommonTag : public Tag
+struct [[gnu::packed]] FramebufferCommonTag : public Tag
 {
     uint64_t framebufferAddr;
     uint32_t framebufferPitch;
@@ -124,14 +126,14 @@ struct PACKED FramebufferCommonTag : public Tag
     uint16_t reserved;
 };
 
-struct PACKED Color
+struct [[gnu::packed]] Color
 {
     uint8_t red;
     uint8_t green;
     uint8_t blue;
 };
 
-struct PACKED FramebufferTag : FramebufferCommonTag
+struct [[gnu::packed]] FramebufferTag : FramebufferCommonTag
 {
     union {
         struct
@@ -151,7 +153,7 @@ struct PACKED FramebufferTag : FramebufferCommonTag
     };
 };
 
-struct PACKED ElfSectionsTag : public Tag
+struct [[gnu::packed]] ElfSectionsTag : public Tag
 {
     uint32_t num;
     uint32_t entsize;
@@ -159,7 +161,7 @@ struct PACKED ElfSectionsTag : public Tag
     char sections[0];
 };
 
-struct PACKED ApmTag : public Tag
+struct [[gnu::packed]] ApmTag : public Tag
 {
     uint16_t version;
     uint16_t cseg;
@@ -172,17 +174,17 @@ struct PACKED ApmTag : public Tag
     uint16_t dsegLen;
 };
 
-struct PACKED Efi32Tag : public Tag
+struct [[gnu::packed]] Efi32Tag : public Tag
 {
     uint32_t pointer;
 };
 
-struct PACKED Efi64Tag : public Tag
+struct [[gnu::packed]] Efi64Tag : public Tag
 {
     uint64_t pointer;
 };
 
-struct PACKED SmbiosTag : public Tag
+struct [[gnu::packed]] SmbiosTag : public Tag
 {
     uint8_t major;
     uint8_t minor;
@@ -190,55 +192,55 @@ struct PACKED SmbiosTag : public Tag
     uint8_t tables[0];
 };
 
-struct PACKED OldAcpiTag : public Tag
+struct [[gnu::packed]] OldAcpiTag : public Tag
 {
     uint8_t rsdp[0];
 };
 
-struct PACKED NewAcpiTag : public Tag
+struct [[gnu::packed]] NewAcpiTag : public Tag
 {
     uint8_t rsdp[0];
 };
 
-struct PACKED NetworkTag : public Tag
+struct [[gnu::packed]] NetworkTag : public Tag
 {
     uint8_t dhcpack[0];
 };
 
-struct PACKED EfiMmapTag : public Tag
+struct [[gnu::packed]] EfiMmapTag : public Tag
 {
     uint32_t descrSize;
     uint32_t descrVers;
     uint8_t efiMmap[0];
 };
 
-struct PACKED Efi32IhTag : public Tag
+struct [[gnu::packed]] Efi32IhTag : public Tag
 {
     uint32_t pointer;
 };
 
-struct PACKED Efi64IhTag : public Tag
+struct [[gnu::packed]] Efi64IhTag : public Tag
 {
     uint64_t pointer;
 };
 
-struct PACKED LoadBaseAddrTag : public Tag
+struct [[gnu::packed]] LoadBaseAddrTag : public Tag
 {
     uint32_t loadBaseAddr;
 };
 
-struct PACKED MultibootBasicInfo
+struct [[gnu::packed]] Info
 {
     uint32_t totalSize;
     uint32_t reserved;
 };
 
-struct MultibootTagEnd {};
+struct TagEnd {};
 
-class MultibootTagIterator
+class TagIterator
 {
 public:
-    MultibootTagIterator(const Tag* current = nullptr) :
+    TagIterator(const Tag* current = nullptr) :
         m_current(current)
     {
     }
@@ -248,24 +250,24 @@ public:
         return *m_current;
     }
 
-    MultibootTagIterator& operator++()
+    TagIterator& operator++()
     {
         auto addr = reinterpret_cast<uintptr_t>(m_current);
         addr += m_current->size;
 
         // multiboot tags are 8-byte aligned
-        addr = ((addr - 1) & ~0x7) + 0x8;
+        addr = stl::align(8, addr);
         m_current = reinterpret_cast<const Tag*>(addr);
 
         return *this;
     }
 
-    bool operator==(const MultibootTagEnd&) const
+    bool operator==(const TagEnd&) const
     {
         return m_current->type == TagType::End && m_current->size == 8;
     }
 
-    bool operator!=(const MultibootTagEnd& endTag) const
+    bool operator!=(const TagEnd& endTag) const
     {
         return !((*this) == endTag);
     }
@@ -274,16 +276,17 @@ private:
     const Tag* m_current;
 };
 
-inline MultibootTagIterator begin(const MultibootBasicInfo* basicInfo)
+inline TagIterator begin(const Info* info)
 {
-    auto addr = reinterpret_cast<uintptr_t>(basicInfo);
-    addr += sizeof(*basicInfo);
+    auto addr = reinterpret_cast<uintptr_t>(info);
+    addr += sizeof(*info);
 
-    return MultibootTagIterator(reinterpret_cast<const Tag*>(addr));
+    return TagIterator(reinterpret_cast<const Tag*>(addr));
 }
 
-inline MultibootTagEnd end(const MultibootBasicInfo*)
+inline TagEnd end(const Info*)
 {
-    return MultibootTagEnd{};
+    return TagEnd{};
 }
 
+}
