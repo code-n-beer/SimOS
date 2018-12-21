@@ -153,6 +153,16 @@ struct PageMapBase
         auto index = indexFromAddress(addr);
         return entries[index];
     }
+
+    TEntry& operator[](const void* addr)
+    {
+        return entryFromAddress(addr);
+    }
+
+    const TEntry& operator[](const void* addr) const
+    {
+        return entryFromAddress(addr);
+    }
 };
 
 struct PML4 : public PageMapBase<PML4E, 39> {};
