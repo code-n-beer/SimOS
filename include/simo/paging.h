@@ -9,7 +9,7 @@ struct Info;
 
 }
 
-namespace memory
+namespace paging
 {
 
 enum class PhysicalAddress : uint64_t

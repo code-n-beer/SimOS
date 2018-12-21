@@ -3,12 +3,12 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include <simo/memory.h>
+#include <simo/paging.h>
 #include <stl/bit.h>
 #include <stl/flags.h>
 #include <stl/typetraits.h>
 
-namespace memory
+namespace paging
 {
 
 enum class PMEFlags : uint64_t

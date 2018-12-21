@@ -6,7 +6,7 @@
 #include <printf.h>
 #include <simo/console.h>
 #include <simo/elf.h>
-#include <simo/memory.h>
+#include <simo/paging.h>
 
 void dumpTag(const multiboot::MmapTag& mmapTag)
 {
@@ -73,7 +73,7 @@ void dumpMultibootInfo(const multiboot::Info* info)
 extern "C" void kmain(const multiboot::Info* info)
 {
     console::init();
-    memory::init(info);
+    paging::init(info);
 
     __asm__("hlt");
 }

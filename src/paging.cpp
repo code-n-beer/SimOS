@@ -1,13 +1,13 @@
 #include <simo/kernel.h>
 #include <simo/multiboot.h>
-#include <simo/memory.h>
+#include <simo/paging.h>
 #include <simo/pagemap.h>
 #include <simo/utils.h>
 #include <printf.h>
 #include <stl/tuple.h>
 #include <stl/bit.h>
 
-namespace memory
+namespace paging
 {
 
 extern "C" uint8_t _kernelVirtualStart;
