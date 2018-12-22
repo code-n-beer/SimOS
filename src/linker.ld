@@ -2,11 +2,14 @@
 ENTRY(start)
 
 SECTIONS {
-    . = 1M;
-    _kernelPhysicalStart = .;
+    .multiboot : {
+        build/boot/*(.multiboot)
+    }
+
+    /*. = 1M;*/
 
     .boottext : {
-        build/boot/*(.multiboot .text)
+        build/boot/*(.text)
     }
 
     .bootrodata : {
@@ -22,13 +25,17 @@ SECTIONS {
                                      COMMON so it mistakenly parses this input section as a comment */
     }
 
-    . = ALIGN(1M);
-    _bootEnd = .;
+    . = ALIGN(2M);
+    _kernelPhysicalStart = .;
+    _kernelStackBottomPA = .;
+    _kernelStackTopPA = _kernelStackBottomPA - 16K;
 
     . += 0xFFFFFFFF80000000;
+    _kernelStackBottomVA = .;
+    _kernelStackTopVA = _kernelStackBottomVA - 16K;
     _kernelVirtualStart = .;
 
-    .text : AT(_bootEnd) {
+    .text : AT(_kernelPhysicalStart) {
         *(.text)
     }
 

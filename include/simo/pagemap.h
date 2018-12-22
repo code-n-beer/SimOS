@@ -113,7 +113,7 @@ using PDE = PageMapEntry<
 
 using PTE = PageMapEntry<
     stl::bitmask(MAXPHYADDR - 1, 12),   // PhysAddrMask
-    stl::bitmask(MAXPHYADDR - 1, 21),   // PhysAddrMaskPage
+    stl::bitmask(MAXPHYADDR - 1, 12),   // PhysAddrMaskPage
     PMEFlags::PageSize                  // DisabledFlags
 >;
 

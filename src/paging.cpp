@@ -14,8 +14,9 @@ extern "C" uint8_t _kernelVirtualStart;
 extern "C" uint8_t _kernelVirtualEnd;
 extern "C" uint8_t _kernelPhysicalStart;
 extern "C" uint8_t _kernelPhysicalEnd;
-extern "C" uint8_t _bootEnd;
-extern "C" uint8_t _stack_bottom;
+extern "C" uint8_t _kernelStackTopPA;
+extern "C" uint8_t _kernelStackTopVA;
+extern "C" uint8_t _kernelStackBottomVA;
 
 using multiboot::MemoryType;
 using multiboot::MmapEntry;
@@ -193,8 +194,8 @@ void setupPageTables(const multiboot::Info* multibootInfo)
     g_physFrameMap = initPhysicalFrameMap(memoryMap, physFrameMapVA);
     const auto physFrameMapEndPA = alignToPage(physFrameMapPA + g_physFrameMap->getByteSize());
 
-    auto startPtr = identityMappedVirtualToPhysical(&_kernelPhysicalStart);
-    auto endPtr = identityMappedVirtualToPhysical(&_kernelPhysicalEnd);
+    const auto startPtr = identityMappedVirtualToPhysical(&_kernelPhysicalStart);
+    const auto endPtr = identityMappedVirtualToPhysical(&_kernelPhysicalEnd);
 
     // reserve the physical memory where the kernel was loaded
     printf("Reserving %016lx-%016lx...\n", uint64_t(startPtr), uint64_t(endPtr));
@@ -224,15 +225,49 @@ void setupPageTables(const multiboot::Info* multibootInfo)
     auto pd = new (identityMappedPhysicalToVirtual(pdPA)) PD();
     printf("PD is at %016lx\n", uint64_t(pdPA));
 
+    auto pd2PA = g_physFrameMap->allocateFrame();
+    auto pd2 = new (identityMappedPhysicalToVirtual(pd2PA)) PD();
+    printf("PD2 is at %016lx\n", uint64_t(pd2PA));
+
+    auto ptPA = g_physFrameMap->allocateFrame();
+    auto pt = new (identityMappedPhysicalToVirtual(ptPA)) PT();
+    printf("PT is at %016lx\n", uint64_t(ptPA));
+
     // TODO: finish this
-    auto va = (void*)0xffff'ffff'8000'0000ull;
+    auto va = (void*)0xffff'ffff'8020'0000ull;
     auto va2 = (void*)0x0000'0000'000b'8000ull;
+    auto kernelPA = identityMappedVirtualToPhysical(&_kernelPhysicalStart);
     pml4->entryFromAddress(va).set(pdptPA, PMEFlags::Present, PMEFlags::Write);
-    pdpt->entryFromAddress(va).set(PhysicalAddress::Null, PMEFlags::PageSize, PMEFlags::Present, PMEFlags::Write);
+    pdpt->entryFromAddress(va).set(pdPA, PMEFlags::Present, PMEFlags::Write);
+    pd->entryFromAddress(va).set(ptPA, PMEFlags::Present, PMEFlags::Write);
+
+    // map the physical frame map
+    for (auto i = 0ul; i < g_physFrameMap->getByteSize(); i += PAGE_SIZE) {
+        const auto v = reinterpret_cast<const char*>(physFrameMapVA) + i;
+        pt->entryFromAddress(v).set(physFrameMapPA + i, PMEFlags::Present, PMEFlags::Write);
+    }
+
+    // map the kernel itself
+    for (auto i = 0ul; i < uint64_t(&_kernelVirtualEnd - &_kernelVirtualStart); i += PAGE_SIZE) {
+        const auto v = reinterpret_cast<const char*>(&_kernelVirtualStart) + i;
+        pt->entryFromAddress(v).set(kernelPA + i, PMEFlags::Present, PMEFlags::Write);
+    }
+
+    auto pt2PA = g_physFrameMap->allocateFrame();
+    auto pt2 = new (identityMappedPhysicalToVirtual(pt2PA)) PT();
+    printf("PT2 is at %016lx\n", uint64_t(pt2PA));
+    pd->entryFromAddress(&_kernelStackTopVA).set(pt2PA, PMEFlags::Present, PMEFlags::Write);
+
+    // map the stack
+    for (auto i = 0ul; i < 0x4000; i += PAGE_SIZE) {
+        const auto v = reinterpret_cast<const char*>(&_kernelStackTopVA) + i;
+        const auto p = identityMappedVirtualToPhysical(&_kernelStackTopPA) + i;
+        pt2->entryFromAddress(v).set(p, PMEFlags::Present, PMEFlags::Write);
+    }
 
     pml4->entryFromAddress(va2).set(pdpt2PA, PMEFlags::Present, PMEFlags::Write);
-    pdpt2->entryFromAddress(va2).set(pdPA, PMEFlags::Present, PMEFlags::Write);
-    pd->entryFromAddress(va2).set(PhysicalAddress::Null, PMEFlags::PageSize, PMEFlags::Present, PMEFlags::Write);
+    pdpt2->entryFromAddress(va2).set(pd2PA, PMEFlags::Present, PMEFlags::Write);
+    pd2->entryFromAddress(va2).set(PhysicalAddress::Null, PMEFlags::PageSize, PMEFlags::Present, PMEFlags::Write);
 
     asm volatile(R"(
         movq %0, %%rax
