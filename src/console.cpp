@@ -1,6 +1,7 @@
 #include <simo/kernel.h>
 #include <simo/console.h>
 #include <simo/utils.h>
+#include <stl/array.h>
 
 namespace
 {
@@ -13,7 +14,7 @@ size_t y;
 console::Color background;
 console::Color foreground;
 
-using ConsoleBuffer = utils::Array<uint16_t, CONSOLE_WIDTH * CONSOLE_HEIGHT>;
+using ConsoleBuffer = stl::Array<uint16_t, CONSOLE_WIDTH * CONSOLE_HEIGHT>;
 ConsoleBuffer* vgaBuffer = nullptr;
 
 }

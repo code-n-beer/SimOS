@@ -79,6 +79,12 @@ constexpr T&& forward(RemoveReference<T>&& t) noexcept
 template<typename T>
 T&& declval() noexcept;
 
+template<typename T>
+constexpr RemoveReference<T>&& move(T&& t) noexcept
+{
+    return static_cast<T&&>(t);
+}
+
 }
 
 namespace stl::concepts
