@@ -137,9 +137,11 @@ struct PageMapBase
         entries{{}}
     {}
 
-    static uint64_t indexFromAddress(const void* addr)
+    static uint16_t indexFromAddress(const void* addr)
     {
-        return (reinterpret_cast<uint64_t>(addr) >> VirtAddrShift) & 0x1FF;
+        return static_cast<uint16_t>(
+            (reinterpret_cast<uint64_t>(addr) >> VirtAddrShift) & 0x1FF
+        );
     }
 
     TEntry& entryFromAddress(const void* addr)
