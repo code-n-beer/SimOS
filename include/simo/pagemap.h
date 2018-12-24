@@ -137,7 +137,7 @@ struct PageMapBase
         entries{{}}
     {}
 
-    uint64_t indexFromAddress(const void* addr) const
+    static uint64_t indexFromAddress(const void* addr)
     {
         return (reinterpret_cast<uint64_t>(addr) >> VirtAddrShift) & 0x1FF;
     }
