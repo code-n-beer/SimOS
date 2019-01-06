@@ -71,14 +71,12 @@ set_up_page_tables:
     mov eax, 0
     or eax, PRESENT | WRITABLE | HUGE
     mov [g_PDPT + PDPT_IDX_FROM_ADDR(KERNEL_PHYSICAL_START) * 8], eax
+    mov [g_PDPT + PDPT_IDX_FROM_ADDR(KERNEL_VIRTUAL_START) * 8], eax
 
-    ; PML4 is used as the PDPT for high addresses, so set the appropriate entry there as well
-    mov [g_PML4 + PDPT_IDX_FROM_ADDR(KERNEL_VIRTUAL_START) * 8], eax
-
-    ; map last entry of PML4 to PML4 itself for recursive pagetable mapping
+    ; map second-last entry of PML4 to PML4 itself for recursive pagetable mapping
     mov eax, g_PML4
     or eax, WRITABLE | PRESENT
-    mov [g_PML4 + (511 * 8)], eax
+    mov [g_PML4 + (510 * 8)], eax
 
     ret
 

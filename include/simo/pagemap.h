@@ -82,8 +82,18 @@ struct PageMapEntry
     template<typename... Ts>
     constexpr void set(PhysicalAddress addr, Ts... flags)
     {
-        setFlags({flags...});
+        set(addr, {flags...});
+    }
+
+    constexpr void set(PhysicalAddress addr, stl::Flags<PMEFlags> flags)
+    {
+        setFlags(flags);
         setPhysicalAddress(addr);
+    }
+
+    constexpr bool isPresent() const
+    {
+        return raw & stl::Flags{PMEFlags::Present};
     }
 
 private:

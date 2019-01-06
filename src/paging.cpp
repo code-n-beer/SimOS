@@ -10,13 +10,13 @@
 namespace paging
 {
 
-extern "C" uint8_t _kernelVirtualStart;
-extern "C" uint8_t _kernelVirtualEnd;
-extern "C" uint8_t _kernelPhysicalStart;
-extern "C" uint8_t _kernelPhysicalEnd;
-extern "C" uint8_t _kernelStackTopPA;
-extern "C" uint8_t _kernelStackTopVA;
-extern "C" uint8_t _kernelStackBottomVA;
+extern "C" char _kernelVirtualStart;
+extern "C" char _kernelVirtualEnd;
+extern "C" char _kernelPhysicalStart;
+extern "C" char _kernelPhysicalEnd;
+extern "C" char _kernelStackTopPA;
+extern "C" char _kernelStackTopVA;
+extern "C" char _kernelStackBottomVA;
 
 using multiboot::MemoryType;
 using multiboot::MmapEntry;
@@ -182,6 +182,67 @@ stl::Tuple<const ElfSectionsTag*, const MmapTag*> getMultibootTags(const multibo
 
 PhysicalFrameMap* g_physFrameMap = nullptr;
 
+PML4* getPML4()
+{
+    return reinterpret_cast<PML4*>(0xffff'ff7f'bfdf'e000);
+}
+
+PDPT* getPDPT(const void* addr)
+{
+    return reinterpret_cast<PDPT*>(
+        0xffff'ff7f'bfc0'0000ul
+        + PML4::indexFromAddress(addr) * 0x1000ul
+    );
+}
+
+PD* getPD(const void* addr)
+{
+    return reinterpret_cast<PD*>(
+        0xffff'ff7f'8000'0000ul
+        + PML4::indexFromAddress(addr) * 0x20'0000ul
+        + PDPT::indexFromAddress(addr) * 0x1000ul
+    );
+}
+
+PT* getPT(const void* addr)
+{
+    return reinterpret_cast<PT*>(
+        0xffff'ff00'0000'0000ul
+        + PML4::indexFromAddress(addr) * 0x4000'0000ul
+        + PDPT::indexFromAddress(addr) * 0x20'0000ul
+        + PD::indexFromAddress(addr) * 0x1000ul
+    );
+}
+
+void mapPage(void* virtualAddr, PhysicalAddress physAddr, stl::Flags<PMEFlags> flags)
+{
+    if (auto& entry = getPML4()->entryFromAddress(virtualAddr); !entry.isPresent()) {
+        auto pdptPA = g_physFrameMap->allocateFrame();
+        entry.set(pdptPA, PMEFlags::Present, PMEFlags::Write);
+
+        printf("creating new PDPT at %016lx (va %p)\n", uint64_t(pdptPA), virtualAddr);
+        new (getPDPT(virtualAddr)) PDPT();
+    }
+
+    if (auto& entry = getPDPT(virtualAddr)->entryFromAddress(virtualAddr); !entry.isPresent()) {
+        auto pdPA = g_physFrameMap->allocateFrame();
+        entry.set(pdPA, PMEFlags::Present, PMEFlags::Write);
+
+        printf("creating new PD at %016lx (va %p)\n", uint64_t(pdPA), virtualAddr);
+        new (getPD(virtualAddr)) PD();
+    }
+
+    if (auto& entry = getPD(virtualAddr)->entryFromAddress(virtualAddr); !entry.isPresent()) {
+        auto ptPA = g_physFrameMap->allocateFrame();
+        entry.set(ptPA, PMEFlags::Present, PMEFlags::Write);
+
+        printf("creating new PT at %016lx (va %p)\n", uint64_t(ptPA), virtualAddr);
+        new (getPT(virtualAddr)) PT();
+    }
+
+    getPT(virtualAddr)->entryFromAddress(virtualAddr).set(physAddr, flags);
+}
+
 void setupPageTables(const multiboot::Info* multibootInfo)
 {
     auto [elfSections, memoryMap] = getMultibootTags(multibootInfo);
@@ -210,64 +271,46 @@ void setupPageTables(const multiboot::Info* multibootInfo)
     }
 
     auto pml4PA = g_physFrameMap->allocateFrame();
-    auto pml4 = new (identityMappedPhysicalToVirtual(pml4PA)) PML4();
     printf("PML4 is at %016lx\n", uint64_t(pml4PA));
 
-    auto pdptPA = g_physFrameMap->allocateFrame();
-    auto pdpt = new (identityMappedPhysicalToVirtual(pdptPA)) PDPT();
-    printf("PDPT is at %016lx\n", uint64_t(pdptPA));
+    // Recursively map the new PML4
+    auto pml4 = new (identityMappedPhysicalToVirtual(pml4PA)) PML4();
+    pml4->entries[510].set(pml4PA, PMEFlags::Present, PMEFlags::Write);
 
-    auto pdpt2PA = g_physFrameMap->allocateFrame();
-    auto pdpt2 = new (identityMappedPhysicalToVirtual(pdpt2PA)) PDPT();
-    printf("PDPT2 is at %016lx\n", uint64_t(pdpt2PA));
+    // Map the recursive entry of the PML4 to our new PML4
+    getPML4()->entries[510].set(pml4PA, PMEFlags::Present, PMEFlags::Write);
 
-    auto pdPA = g_physFrameMap->allocateFrame();
-    auto pd = new (identityMappedPhysicalToVirtual(pdPA)) PD();
-    printf("PD is at %016lx\n", uint64_t(pdPA));
+    // invalidate the TLB cache for the old PML4 mapping
+    asm volatile(R"(
+        movq %0, %%rax
+        invlpg (%%rax)
+        )"
+        : : "r"(pml4) : "%rax"
+    );
 
-    auto pd2PA = g_physFrameMap->allocateFrame();
-    auto pd2 = new (identityMappedPhysicalToVirtual(pd2PA)) PD();
-    printf("PD2 is at %016lx\n", uint64_t(pd2PA));
-
-    auto ptPA = g_physFrameMap->allocateFrame();
-    auto pt = new (identityMappedPhysicalToVirtual(ptPA)) PT();
-    printf("PT is at %016lx\n", uint64_t(ptPA));
-
-    // TODO: finish this
-    auto va = (void*)0xffff'ffff'8020'0000ull;
-    auto va2 = (void*)0x0000'0000'000b'8000ull;
+    // todo: clean up
     auto kernelPA = identityMappedVirtualToPhysical(&_kernelPhysicalStart);
-    pml4->entryFromAddress(va).set(pdptPA, PMEFlags::Present, PMEFlags::Write);
-    pdpt->entryFromAddress(va).set(pdPA, PMEFlags::Present, PMEFlags::Write);
-    pd->entryFromAddress(va).set(ptPA, PMEFlags::Present, PMEFlags::Write);
 
     // map the physical frame map
     for (auto i = 0ul; i < g_physFrameMap->getByteSize(); i += PAGE_SIZE) {
-        const auto v = reinterpret_cast<const char*>(physFrameMapVA) + i;
-        pt->entryFromAddress(v).set(physFrameMapPA + i, PMEFlags::Present, PMEFlags::Write);
+        auto v = reinterpret_cast<char*>(physFrameMapVA) + i;
+        mapPage(v, physFrameMapPA + i, {PMEFlags::Present, PMEFlags::Write});
     }
 
     // map the kernel itself
     for (auto i = 0ul; i < uint64_t(&_kernelVirtualEnd - &_kernelVirtualStart); i += PAGE_SIZE) {
-        const auto v = reinterpret_cast<const char*>(&_kernelVirtualStart) + i;
-        pt->entryFromAddress(v).set(kernelPA + i, PMEFlags::Present, PMEFlags::Write);
+        auto v = (&_kernelVirtualStart) + i;
+        mapPage(v, kernelPA + i, {PMEFlags::Present, PMEFlags::Write});
     }
-
-    auto pt2PA = g_physFrameMap->allocateFrame();
-    auto pt2 = new (identityMappedPhysicalToVirtual(pt2PA)) PT();
-    printf("PT2 is at %016lx\n", uint64_t(pt2PA));
-    pd->entryFromAddress(&_kernelStackTopVA).set(pt2PA, PMEFlags::Present, PMEFlags::Write);
 
     // map the stack
     for (auto i = 0ul; i < 0x4000; i += PAGE_SIZE) {
-        const auto v = reinterpret_cast<const char*>(&_kernelStackTopVA) + i;
-        const auto p = identityMappedVirtualToPhysical(&_kernelStackTopPA) + i;
-        pt2->entryFromAddress(v).set(p, PMEFlags::Present, PMEFlags::Write);
+        auto v = (&_kernelStackTopVA) + i;
+        auto p = identityMappedVirtualToPhysical(&_kernelStackTopPA) + i;
+        mapPage(v, p, {PMEFlags::Present, PMEFlags::Write});
     }
 
-    pml4->entryFromAddress(va2).set(pdpt2PA, PMEFlags::Present, PMEFlags::Write);
-    pdpt2->entryFromAddress(va2).set(pd2PA, PMEFlags::Present, PMEFlags::Write);
-    pd2->entryFromAddress(va2).set(PhysicalAddress::Null, PMEFlags::PageSize, PMEFlags::Present, PMEFlags::Write);
+    mapPage((void*)0xb8000, PhysicalAddress{0xb8000}, {PMEFlags::Present, PMEFlags::Write});
 
     asm volatile(R"(
         movq %0, %%rax
