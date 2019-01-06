@@ -138,7 +138,7 @@ concept bool ValidPageMapEntry =
 template<size_t S>
 concept bool ValidAddrShift = (S >= 12) && (S <= 39);
 
-template<ValidPageMapEntry TEntry, ValidAddrShift VirtAddrShift>
+template<ValidPageMapEntry TEntry, ValidAddrShift VirtAddrShift, uint64_t BaseAddress>
 struct PageMapBase
 {
     TEntry entries[512];
@@ -175,11 +175,13 @@ struct PageMapBase
     {
         return entryFromAddress(addr);
     }
+
+    static const uint64_t VirtualBaseAddress = BaseAddress;
 };
 
-struct PML4 : public PageMapBase<PML4E, 39> {};
-struct PDPT : public PageMapBase<PDPTE, 30> {};
-struct PD   : public PageMapBase<PDE,   21> {};
-struct PT   : public PageMapBase<PTE,   12> {};
+struct PML4 : public PageMapBase<PML4E, 39, 0xffff'ff7f'bfdf'e000> {};
+struct PDPT : public PageMapBase<PDPTE, 30, 0xffff'ff7f'bfc0'0000> {};
+struct PD   : public PageMapBase<PDE,   21, 0xffff'ff7f'8000'0000> {};
+struct PT   : public PageMapBase<PTE,   12, 0xffff'ff00'0000'0000> {};
 
 }
