@@ -31,7 +31,7 @@ public:
     }
 
 private:
-    T m_value;
+    [[no_unique_address]] T m_value;
 };
 
 template<size_t... Is>
