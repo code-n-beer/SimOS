@@ -30,7 +30,7 @@ using True = IntegralConstant<bool, true>;
 using False = IntegralConstant<bool, false>;
 
 template<bool Condition, typename T>
-using EnableIf = typename detail::EnableIf<Condition, T>::Type;
+using EnableIf = detail::EnableIf<Condition, T>::Type;
 
 template<typename T, typename U>
 constexpr bool IsSame = false;
@@ -62,7 +62,7 @@ template<typename T> constexpr bool IsRvalueReference<T&&>  = true;
 template<typename T> constexpr bool IsReference = IsLvalueReference<T> || IsRvalueReference<T>;
 
 template<typename T>
-using RemoveReference = typename detail::RemoveReference<T>::Type;
+using RemoveReference = detail::RemoveReference<T>::Type;
 
 template<typename T>
 constexpr T&& forward(RemoveReference<T>& t) noexcept

@@ -58,13 +58,13 @@ namespace stl
 {
 
 template<size_t I, typename T>
-typename detail::TupleElement<I, T>::ValueType& get(detail::TupleElement<I, T>& tuple)
+detail::TupleElement<I, T>::ValueType& get(detail::TupleElement<I, T>& tuple)
 {
     return tuple.get();
 }
 
 template<size_t I, typename T>
-const typename detail::TupleElement<I, T>::ValueType& get(const detail::TupleElement<I, T>& tuple)
+const detail::TupleElement<I, T>::ValueType& get(const detail::TupleElement<I, T>& tuple)
 {
     return tuple.get();
 }
