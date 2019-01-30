@@ -223,7 +223,7 @@ PT& getPT(const void* addr)
 void initPDPTForAddress(PML4E* entry, const void* addr)
 {
     auto pdptPA = g_physFrameMap->allocateFrame();
-    entry->set(pdptPA, PMEFlags::Present, PMEFlags::Write);
+    entry->set(pdptPA, PMEFlags::Present | PMEFlags::Write);
     //printf("creating new PDPT at %016lx (va %p)\n", uint64_t(pdptPA), virtualAddr);
 
     new (&getPDPT(addr)) PDPT();
@@ -232,7 +232,7 @@ void initPDPTForAddress(PML4E* entry, const void* addr)
 void initPDForAddress(PDPTE* entry, const void* addr)
 {
     auto pdPA = g_physFrameMap->allocateFrame();
-    entry->set(pdPA, PMEFlags::Present, PMEFlags::Write);
+    entry->set(pdPA, PMEFlags::Present | PMEFlags::Write);
     //printf("creating new PD at %016lx (va %p)\n", uint64_t(pdPA), virtualAddr);
 
     new (&getPD(addr)) PD();
@@ -241,7 +241,7 @@ void initPDForAddress(PDPTE* entry, const void* addr)
 void initPTForAddress(PDE* entry, const void* addr)
 {
     auto ptPA = g_physFrameMap->allocateFrame();
-    entry->set(ptPA, PMEFlags::Present, PMEFlags::Write);
+    entry->set(ptPA, PMEFlags::Present | PMEFlags::Write);
     //printf("creating new PT at %016lx (va %p)\n", uint64_t(ptPA), virtualAddr);
 
     new (&getPT(addr)) PT();
@@ -309,10 +309,10 @@ void setupPageTables(const multiboot::Info* multibootInfo)
 
     // Recursively map the new PML4
     auto pml4 = new (identityMappedPhysicalToVirtual(pml4PA)) PML4();
-    pml4->entries[510].set(pml4PA, PMEFlags::Present, PMEFlags::Write);
+    pml4->entries[510].set(pml4PA, PMEFlags::Present | PMEFlags::Write);
 
     // Map the recursive entry of the PML4 to our new PML4
-    getPML4().entries[510].set(pml4PA, PMEFlags::Present, PMEFlags::Write);
+    getPML4().entries[510].set(pml4PA, PMEFlags::Present | PMEFlags::Write);
 
     // invalidate the TLB cache for the old PML4 recursive mapping
     asm volatile(R"(
@@ -326,17 +326,17 @@ void setupPageTables(const multiboot::Info* multibootInfo)
     auto kernelPA = identityMappedVirtualToPhysical(&_kernelPhysicalStart);
 
     // map the physical frame map
-    mapRange(physFrameMapVA, physFrameMapPA, g_physFrameMap->getByteSize(), {PMEFlags::Present, PMEFlags::Write});
+    mapRange(physFrameMapVA, physFrameMapPA, g_physFrameMap->getByteSize(), PMEFlags::Present | PMEFlags::Write);
 
     // map the kernel itself, TODO: map the sections properly
     auto kernelSize = &_kernelVirtualEnd - &_kernelVirtualStart;
-    mapRange(&_kernelVirtualStart, kernelPA, kernelSize, {PMEFlags::Present, PMEFlags::Write});
+    mapRange(&_kernelVirtualStart, kernelPA, kernelSize, PMEFlags::Present | PMEFlags::Write);
 
     // map the stack
-    mapRange(&_kernelStackTopVA, identityMappedVirtualToPhysical(&_kernelStackTopPA), 0x4000, {PMEFlags::Present, PMEFlags::Write});
+    mapRange(&_kernelStackTopVA, identityMappedVirtualToPhysical(&_kernelStackTopPA), 0x4000, PMEFlags::Present | PMEFlags::Write);
 
     // map VGA console - TODO: rework the console itself
-    mapPage((void*)0xb8000, PhysicalAddress{0xb8000}, {PMEFlags::Present, PMEFlags::Write});
+    mapPage((void*)0xb8000, PhysicalAddress{0xb8000}, PMEFlags::Present | PMEFlags::Write);
 
     asm volatile(R"(
         movq %0, %%rax

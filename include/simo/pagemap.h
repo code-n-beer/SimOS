@@ -79,12 +79,6 @@ struct PageMapEntry
         raw = (raw & ~mask) | (static_cast<uint64_t>(address) & mask);
     }
 
-    template<typename... Ts>
-    constexpr void set(PhysicalAddress addr, Ts... flags)
-    {
-        set(addr, {flags...});
-    }
-
     constexpr void set(PhysicalAddress addr, stl::Flags<PMEFlags> flags)
     {
         setFlags(flags);

@@ -35,7 +35,7 @@ public:
     constexpr Flags<TFlag> operator|(TFlag t)         const { return (*this) | Flags(t); } 
     constexpr Flags<TFlag> operator&(Flags<TFlag> t)  const { return Flags{ m_value & t.m_value }; }
     constexpr Flags<TFlag> operator~()                const { return Flags{ ~m_value }; }
-    constexpr operator bool()                         const { return m_value != 0; }
+    constexpr explicit operator bool()                const { return m_value != 0; }
 
     constexpr Flags<TFlag>& operator|=(Flags<TFlag> t)
     {   
@@ -62,4 +62,10 @@ constexpr T operator&(T a, const Flags<TFlag>& b)
     return static_cast<T>(a & b.value());
 }
 
+}
+
+template<typename TFlag>
+constexpr stl::Flags<TFlag> operator|(TFlag a, TFlag b)
+{
+    return stl::Flags{a} | b;
 }
