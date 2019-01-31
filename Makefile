@@ -93,6 +93,11 @@ build/boot/%.o: src/boot/%.S
 	@echo "[GCC] $<"
 	$(CC) -c $< -o $@
 
+build/%.o: src/%.S
+	@mkdir -p $(shell dirname $@)
+	@echo "[GCC] $<"
+	$(CC) -c $< -o $@
+
 test:
 	$(MAKE) -C test/ run
 
