@@ -7,6 +7,7 @@
 #include <simo/console.h>
 #include <simo/elf.h>
 #include <simo/paging.h>
+#include <stl/lambda.h>
 
 void dumpTag(const multiboot::MmapTag& mmapTag)
 {
@@ -74,6 +75,16 @@ extern "C" void kmain(const multiboot::Info* info)
 {
     console::init();
     paging::init(info);
+
+    int x = 5;
+
+    stl::Lambda<void()> lambda([&x]() {
+        printf("hello from lambda (%d)\n", x);
+    });
+
+    lambda();
+    x = 10;
+    lambda();
 
     __asm__("hlt");
 }

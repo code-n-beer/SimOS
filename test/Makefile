@@ -5,7 +5,7 @@ OBJ = $(patsubst src/%.cpp, $(OBJDIR)/%.o, $(SRC))
 
 TARGET = $(OBJDIR)/simotest
 
-CXXFLAGS += -Wall -Wextra -O3 -fconcepts -std=gnu++17 -I../include # -fdump-lang-class
+CXXFLAGS += -Wall -Wextra -O3 -fconcepts -std=gnu++2a -I../include # -fdump-lang-class
 DEPFLAGS = -MT $@ -MMD -MP -MF $(OBJDIR)/$*.Td
 POSTCOMPILE = @mv -f $(OBJDIR)/$*.Td $(OBJDIR)/$*.d && touch $@
 
