@@ -1,4 +1,5 @@
 .section .multiboot
+.align 8 /* multiboot requires the header to be 64-bit aligned */
 
 header_start:
     .long 0xe85250d6                    /* multiboot 2 magic */

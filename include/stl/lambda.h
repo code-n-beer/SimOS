@@ -17,7 +17,8 @@ public:
     template<typename TFunc>
     Lambda(TFunc&& function)
     {
-        static_assert(sizeof(TFunc) <= sizeof(m_callableStorage));
+        // TODO: alignment?
+        static_assert(sizeof(Callable<TFunc>) <= STORAGE_SIZE);
         m_callable = new (m_callableStorage) Callable<TFunc>(function);
     }
 
@@ -31,10 +32,13 @@ public:
     template<typename... TCallArgs>
     TResult operator()(TCallArgs&&... args) const
     {
+        // TODO: assert(m_callable)
         return m_callable->call(forward<TCallArgs>(args)...);
     }
 
 private:
+    static constexpr size_t STORAGE_SIZE = 32;
+
     class CallableBase
     {
     public:
@@ -60,7 +64,7 @@ private:
         TFunc m_function;
     };
 
-    char m_callableStorage[128];
+    char m_callableStorage[STORAGE_SIZE];
     CallableBase* m_callable = nullptr;
 };
 
