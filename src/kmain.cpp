@@ -76,22 +76,5 @@ extern "C" void kmain(const multiboot::Info* info)
     console::init();
     paging::init(info);
 
-    int x = 5;
-
-    auto fn = [&x]() {
-        printf("hello from fn (%d)\n", x);
-    };
-
-    stl::Lambda<void()> lambda([&x]() {
-        printf("hello from lambda (%d)\n", x);
-    });
-
-    stl::Lambda<void()> lambda2(fn);
-
-    lambda();
-    x = 10;
-    lambda();
-    lambda2();
-
     __asm__("hlt");
 }
