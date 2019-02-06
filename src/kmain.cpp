@@ -8,6 +8,7 @@
 #include <simo/elf.h>
 #include <simo/paging.h>
 #include <stl/lambda.h>
+#include <simo/interrupt.h>
 
 void dumpTag(const multiboot::MmapTag& mmapTag)
 {
@@ -75,6 +76,11 @@ extern "C" void kmain(const multiboot::Info* info)
 {
     console::init();
     paging::init(info);
+    interrupts::init();
 
+    __asm__("int $3");
+    printf("this should run after first int3...\n");
+    __asm__("int $3");
+    printf("this should run after second int3...\n");
     __asm__("hlt");
 }

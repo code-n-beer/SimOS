@@ -24,7 +24,8 @@ C_OBJS := $(patsubst src/%.c, build/%.o, $(C_SRCS))
 
 SRCS = $(C_SRCS) $(CXX_SRCS)
 
-COMMON_CFLAGS := -g -ffreestanding -Wall -Wextra -Iinclude/ -mno-red-zone -mcmodel=kernel -flto -fno-strict-aliasing -m64 -O2
+# TODO: fix shit so we don't need to use -mgeneral-regs-only or disable float support in printf
+COMMON_CFLAGS := -g -ffreestanding -Wall -Wextra -Iinclude/ -mno-red-zone -mcmodel=kernel -flto -fno-strict-aliasing -m64 -O2 -mgeneral-regs-only -DPRINTF_DISABLE_SUPPORT_FLOAT
 CXXFLAGS += $(COMMON_CFLAGS) -std=gnu++2a -fno-exceptions -fno-rtti -fconcepts
 CFLAGS += $(COMMON_CFLAGS) -std=gnu11
 LDFLAGS += -z max-page-size=0x1000 -flto

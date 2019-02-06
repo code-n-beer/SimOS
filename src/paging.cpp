@@ -338,6 +338,9 @@ void setupPageTables(const multiboot::Info* multibootInfo)
     // map VGA console - TODO: rework the console itself
     mapPage((void*)0xb8000, PhysicalAddress{0xb8000}, PMEFlags::Present | PMEFlags::Write);
 
+    // TODO: set up a proper GDT so we don't need to map the zero page
+    mapPage((void*)0x0, PhysicalAddress{0x0}, PMEFlags::Present | PMEFlags::Write);
+
     asm volatile(R"(
         movq %0, %%rax
         movq %%rax, %%cr3
