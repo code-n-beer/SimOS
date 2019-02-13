@@ -9,6 +9,7 @@
 #include <simo/paging.h>
 #include <stl/lambda.h>
 #include <simo/interrupt.h>
+#include <simo/gdt.h>
 
 void dumpTag(const multiboot::MmapTag& mmapTag)
 {
@@ -76,6 +77,7 @@ extern "C" void kmain(const multiboot::Info* info)
 {
     console::init();
     paging::init(info);
+    gdt::init();
     interrupts::init();
 
     __asm__("int $3");
