@@ -6,7 +6,7 @@
 namespace interrupts
 {
 
-struct interrupt_frame
+struct InterruptContext
 {
     uint64_t ip;
     uint64_t cs;
@@ -16,8 +16,8 @@ struct interrupt_frame
 };
 
 // TODO: how to ensure [[gnu::interrupt]]?
-using InterruptHandler = void (*)(interrupt_frame*);
-using ExceptionHandler = void (*)(interrupt_frame*, uint64_t);
+using InterruptHandler = void (*)(InterruptContext*);
+using ExceptionHandler = void (*)(InterruptContext*, uint64_t);
 
 // TODO: make exception and interrupt handler descriptors separate types
 struct [[gnu::packed]] InterruptDescriptor
@@ -71,33 +71,57 @@ private:
 
 InterruptDescriptor g_IDT[256] = {};
 
-[[gnu::interrupt]] void int3Handler(interrupt_frame* ctx/*, uint64_t errorCode*/)
+void dumpInterruptContext(const InterruptContext* ctx)
 {
-    printf("hehebin from int3 (%p)\n", ctx);
-    /*memset((void*)0xb8000, 0x22, 2*80*25);
-    asm volatile("hlt");*/
+    printf(R"(context:
+  rip:    %016lx
+  cs:     %04lx
+  flags:  %08lx
+  rsp:    %016lx
+  ss:     %04lx)""\n\n", ctx->ip, ctx->cs, ctx->flags, ctx->sp, ctx->ss);
+}
+
+[[gnu::interrupt]] void int3Handler(InterruptContext* ctx)
+{
+    printf("\n[int3]\n");
+    dumpInterruptContext(ctx);
+}
+
+[[gnu::interrupt]] void pageFaultHandler(InterruptContext* ctx, uint64_t errorCode)
+{
+    uint64_t faultAddr;
+    asm volatile("movq %[faultAddr], %%cr2" : [faultAddr]"=a"(faultAddr));
+
+    printf("\n[omg pagefault]\n");
+    printf("error:      %04lx\n", errorCode);
+    printf("address:    %016lx\n", faultAddr);
+    printf("present:    %s\n", (errorCode & 1) ? "yes" : "no");
+    printf("access:     %s\n", (errorCode & 2) ? "write" : "read");
+
+    dumpInterruptContext(ctx);
+
+    asm volatile("hlt");
 }
 
 void init()
 {
-    memset(&g_IDT, 0, sizeof(g_IDT));
-    g_IDT[3] = InterruptDescriptor::create(int3Handler, 1 << 3, 0, 0b1000'0000 | 0b1111);
+    g_IDT[3] = InterruptDescriptor::create(int3Handler, 0x8, 0, 0b1000'0000 | 0b1111);
+    g_IDT[0xE] = InterruptDescriptor::create(pageFaultHandler, 0x8, 0, 0b1000'0000 | 0b1111);
 
     printf("loading IDT\n");
 
     struct [[gnu::packed]] {
         uint16_t size;
-        uint64_t offset;
-    } idtInfo = {
+        void* offset;
+    } idtr = {
         .size = sizeof(g_IDT) - 1,
-        .offset = (uint64_t)g_IDT
+        .offset = g_IDT
     };
 
     asm volatile(R"(
-        movq %0, %%rax
-        lidt (%%rax)
+        lidt %[idtr]
         )"
-        : : "r"(&idtInfo) : "%rax"
+        : : [idtr]"m"(idtr) //: "%rax"
     );
     
     printf("done\n");

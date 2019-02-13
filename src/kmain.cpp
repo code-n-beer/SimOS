@@ -80,9 +80,7 @@ extern "C" void kmain(const multiboot::Info* info)
     gdt::init();
     interrupts::init();
 
-    __asm__("int $3");
-    printf("this should run after first int3...\n");
-    __asm__("int $3");
-    printf("this should run after second int3...\n");
-    __asm__("hlt");
+    printf("forcing a page fault: *(int*)(0xdeadbeef) = 0xbadc0de; ...\n");
+    *(int*)(0xdeadbeef) = 0xbadc0de;
+    asm volatile("hlt");
 }
