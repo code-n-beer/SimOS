@@ -65,7 +65,7 @@ void dumpMultibootInfo(const multiboot::Info* info)
             dumpTag(static_cast<const multiboot::MmapTag&>(tag));
             break;
         case multiboot::TagType::ElfSections:
-            //dumpTag(static_cast<const ElfSectionsTag&>(tag));
+            dumpTag(static_cast<const multiboot::ElfSectionsTag&>(tag));
             break;
         default:
             break;
@@ -75,12 +75,16 @@ void dumpMultibootInfo(const multiboot::Info* info)
 
 extern "C" void kmain(const multiboot::Info* info)
 {
+    auto infoSize = 0x2000;//info->totalSize;
+
     console::init();
     paging::init(info);
     gdt::init();
     interrupts::init();
 
-    printf("forcing a page fault: *(int*)(0xdeadbeef) = 0xbadc0de; ...\n");
-    *(int*)(0xdeadbeef) = 0xbadc0de;
+    auto infoPA = paging::PhysicalAddress{reinterpret_cast<uint64_t>(info)};
+    paging::mapRange(const_cast<multiboot::Info*>(info), infoPA, infoSize, paging::PMEFlags::Present);
+    dumpMultibootInfo(info);
+
     asm volatile("hlt");
 }
