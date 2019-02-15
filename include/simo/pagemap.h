@@ -11,19 +11,6 @@
 namespace paging
 {
 
-enum class PMEFlags : uint64_t
-{
-    Present             = stl::bit(0),
-    Write               = stl::bit(1),
-    Supervisor          = stl::bit(2),
-    PageWriteThrough    = stl::bit(3),
-    PageCacheDisable    = stl::bit(4),
-    Accessed            = stl::bit(5),
-    Dirty               = stl::bit(6),
-    PageSize            = stl::bit(7),
-    ExecuteDisable      = stl::bit(63),
-};
-
 template<
     uint64_t PhysAddrMask,
     uint64_t PhysAddrMaskPage,
