@@ -10,11 +10,8 @@ ISO := build/os-$(ARCH).iso
 LINKER_SCRIPT := src/linker.ld
 GRUB_CFG := src/boot/grub.cfg
 
-ASM_SRCS := $(wildcard src/boot/*.asm)
-ASM_OBJS := $(patsubst src/boot/%.asm, build/boot/%.o, $(ASM_SRCS))
-
-ASM2_SRCS := $(wildcard src/boot/*.S)
-ASM2_OBJS := $(patsubst src/boot/%.S, build/boot/%.o, $(ASM2_SRCS))
+ASM_SRCS := $(wildcard src/boot/*.S)
+ASM_OBJS := $(patsubst src/boot/%.S, build/boot/%.o, $(ASM_SRCS))
 
 CXX_SRCS := $(wildcard src/*.cpp)
 CXX_OBJS := $(patsubst src/%.cpp, build/%.o, $(CXX_SRCS))
@@ -79,25 +76,11 @@ build/%.o: src/%.c build/%.d
 	@$(CC) $(DEPFLAGS) $(CFLAGS) -c $< -o $@
 	$(POSTCOMPILE)
 
-build/%.o: src/%.asm
-	@mkdir -p $(shell dirname $@)
-	@echo "[NASM] $<"
-	@nasm -felf64 $< -o $@
-
-build/boot/%.o: src/boot/%.asm
-	@mkdir -p $(shell dirname $@)
-	@echo "[NASM] $<"
-	@nasm -felf64 $< -o $@
-
-build/boot/%.o: src/boot/%.S
-	@mkdir -p $(shell dirname $@)
-	@echo "[GCC] $<"
-	$(CC) -c $< -o $@
-
 build/%.o: src/%.S
 	@mkdir -p $(shell dirname $@)
-	@echo "[GCC] $<"
-	$(CC) -c $< -o $@
+	@echo "[CC]   $<"
+	@$(CC) $(DEPFLAGS) $(CFLAGS) -c $< -o $@
+	$(POSTCOMPILE)
 
 test:
 	$(MAKE) -C test/ run
