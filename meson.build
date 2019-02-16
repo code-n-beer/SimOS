@@ -23,4 +23,12 @@ sources = [
   'src/crtn.S'
 ]
 
-executable('kernel.elf', sources, include_directories: incdir)
+kernel = executable('kernel.elf', sources, include_directories: incdir)
+
+build_iso = find_program('scripts/build_iso.sh')
+
+custom_target('iso',
+  build_by_default: true,
+  output: 'simo.iso',
+  input: ['src/boot/grub.cfg', kernel],
+  command: [build_iso, '@OUTPUT@', '@OUTDIR@', '@INPUT0@', '@INPUT1@'])
