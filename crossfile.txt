@@ -1,0 +1,21 @@
+[binaries]
+c = '/usr/bin/x86_64-elf-gcc'
+cpp = '/usr/bin/x86_64-elf-g++'
+ar = '/usr/bin/x86_64-elf-ar'
+strip = '/usr/bin/x86_64-elf-strip'
+
+[properties]
+c_args = ['-ffreestanding', '-mno-red-zone', '-mcmodel=kernel', '-fno-strict-aliasing',
+          '-m64', '-mgeneral-regs-only', '-DPRINTF_DISABLE_SUPPORT_FLOAT']
+
+cpp_args = ['-ffreestanding', '-mno-red-zone', '-mcmodel=kernel', '-fno-strict-aliasing',
+            '-m64', '-mgeneral-regs-only', '-DPRINTF_DISABLE_SUPPORT_FLOAT', '-fconcepts',
+            '-fno-exceptions', '-fno-rtti']
+
+cpp_link_args = ['-nostdlib', '-lgcc', '-T../src/linker.ld', '-z max-page-size=0x1000']
+
+[host_machine]
+system = 'simo'
+cpu_family = 'x86_64'
+cpu = 'x86_64'
+endian = 'little'

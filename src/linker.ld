@@ -2,27 +2,21 @@
 ENTRY(start)
 
 SECTIONS {
-    .multiboot : {
-        build/boot/*(.multiboot)
-    }
-
-    /*. = 1M;*/
-
     .boottext : {
-        build/boot/*(.text)
+        *.S.o(.text)
     }
 
     .bootrodata : {
-        build/boot/*(.rodata)
+        *.S.o(.rodata)
     }
 
     .bootdata : {
-        build/boot/*(.data)
+        *.S.o(.data)
+        *.S.o(.multiboot)
     }
 
     .bootbss : {
-        build/boot/*(.bss COMMON) /* the vscode linker script plugin doesn't like
-                                     COMMON so it mistakenly parses this input section as a comment */
+        *.S.o(.bss COMMON)
     }
 
     . = ALIGN(2M);
@@ -36,7 +30,7 @@ SECTIONS {
     _kernelVirtualStart = .;
 
     .text : AT(_kernelPhysicalStart) {
-        *(.text)
+        *(.text*)
     }
 
     .rodata ALIGN(4K) : AT(ALIGN(LOADADDR(.text) + SIZEOF(.text), 4K)) {
