@@ -1,10 +1,14 @@
-project('SimOS', 'cpp', 'c',
-  version : '0.1',
-  default_options : [
+project('SimOS',
+  'cpp', 'c',
+  version: '0.1',
+  default_options: [
     'warning_level=2', 
     'cpp_std=gnu++2a',
     'c_std=gnu11'
   ])
+
+qemu = find_program('qemu-system-x86_64')
+build_iso = find_program('scripts/build_iso.sh')
 
 incdir = include_directories('include')
 
@@ -23,12 +27,16 @@ sources = [
   'src/crtn.S'
 ]
 
-kernel = executable('kernel.elf', sources, include_directories: incdir)
+kernel = executable('kernel.elf',
+  sources,
+  include_directories: incdir)
 
-build_iso = find_program('scripts/build_iso.sh')
-
-custom_target('iso',
+iso = custom_target('iso',
   build_by_default: true,
   output: 'simo.iso',
   input: ['src/boot/grub.cfg', kernel],
   command: [build_iso, '@OUTPUT@', '@OUTDIR@', '@INPUT0@', '@INPUT1@'])
+
+run_target('run',
+  command: [qemu, '-m', '1G', '-cdrom', iso, '-cpu', 'Skylake-Client',
+            '-no-reboot', '-no-shutdown', '-d', 'int', '-monitor', 'stdio'])
