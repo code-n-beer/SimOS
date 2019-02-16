@@ -37,7 +37,7 @@ iso = custom_target('iso',
   command: [build_iso, '@OUTPUT@', '@OUTDIR@', '@INPUT0@', '@INPUT1@'])
 
 qemu_base_args = [
-  qemu, '-m', '1G', '-cdrom', iso, '-cpu', 'Skylake-Client',
+  qemu, '-enable-kvm', '-m', '1G', '-cdrom', iso, '-cpu', 'host',
   '-no-reboot', '-no-shutdown', '-monitor', 'stdio'
 ]
 
