@@ -32,11 +32,11 @@ kernel = executable('kernel.elf',
   include_directories: incdir)
 
 iso = custom_target('iso',
-  build_by_default: true,
   output: 'simo.iso',
   input: ['src/boot/grub.cfg', kernel],
   command: [build_iso, '@OUTPUT@', '@OUTDIR@', '@INPUT0@', '@INPUT1@'])
 
 run_target('run',
+  depends: iso,
   command: [qemu, '-m', '1G', '-cdrom', iso, '-cpu', 'Skylake-Client',
             '-no-reboot', '-no-shutdown', '-d', 'int', '-monitor', 'stdio'])
