@@ -3,4 +3,4 @@ build/
 target/
 .vscode/
 test/build/
-
+.gdb_history

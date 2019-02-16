@@ -36,7 +36,15 @@ iso = custom_target('iso',
   input: ['src/boot/grub.cfg', kernel],
   command: [build_iso, '@OUTPUT@', '@OUTDIR@', '@INPUT0@', '@INPUT1@'])
 
+qemu_base_args = [
+  qemu, '-m', '1G', '-cdrom', iso, '-cpu', 'Skylake-Client',
+  '-no-reboot', '-no-shutdown', '-monitor', 'stdio'
+]
+
 run_target('run',
   depends: iso,
-  command: [qemu, '-m', '1G', '-cdrom', iso, '-cpu', 'Skylake-Client',
-            '-no-reboot', '-no-shutdown', '-d', 'int', '-monitor', 'stdio'])
+  command: qemu_base_args)
+
+run_target('run-debug',
+  depends: iso,
+  command: qemu_base_args + ['-s', '-S', '-d', 'int'])
