@@ -24,6 +24,7 @@ sources = [
   'src/boot/boot.S',
   'src/boot/long_mode_init.S',
   'src/boot/multiboot.S',
+  'src/boot/bootsplash.cpp',
   'src/crtn.S'
 ]
 

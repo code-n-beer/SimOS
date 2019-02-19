@@ -24,7 +24,9 @@ namespace console
 
 void init()
 {
-    vgaBuffer = new (reinterpret_cast<void*>(0xb8000)) ConsoleBuffer();
+    // running the constructor will just overwrite the vga buffer :()
+    //vgaBuffer = new (reinterpret_cast<void*>(0xb8000)) ConsoleBuffer();
+    vgaBuffer = reinterpret_cast<ConsoleBuffer*>(0xb8000);
     setForegroundColor(Color::LightGrey);
     setBackgroundColor(Color::Black);
 }

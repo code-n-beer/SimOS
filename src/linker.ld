@@ -19,6 +19,12 @@ SECTIONS {
         *.S.o(.bss COMMON)
     }
 
+    . = 0xB8000;
+
+    .bootsplash : {
+        *(.bootsplash)
+    }
+
     . = ALIGN(2M);
     _kernelPhysicalStart = .;
     _kernelStackBottomPA = .;
