@@ -31,15 +31,6 @@ struct [[gnu::packed]] InterruptDescriptor
     uint32_t offset3;
     uint32_t reserved;
 
-    static stl::Tuple<uint16_t, uint16_t, uint32_t> extractOffsets(uint64_t v)
-    {
-        auto offset1 = static_cast<uint16_t>(v & 0xfffful);
-        auto offset2 = static_cast<uint16_t>((v >> 16) & 0xfffful);
-        auto offset3 = static_cast<uint32_t>((v >> 32) & 0xffff'fffful);
-
-        return { offset1, offset2, offset3 };
-    }
-
     static InterruptDescriptor create(InterruptHandler handler, gdt::Selector selector,
                                       uint8_t stackTableOffset, uint8_t typeAndAttributes)
     {
@@ -53,6 +44,15 @@ struct [[gnu::packed]] InterruptDescriptor
     }
 
 private:
+    static stl::Tuple<uint16_t, uint16_t, uint32_t> extractOffsets(uint64_t v)
+    {
+        auto offset1 = static_cast<uint16_t>(v & 0xfffful);
+        auto offset2 = static_cast<uint16_t>((v >> 16) & 0xfffful);
+        auto offset3 = static_cast<uint32_t>((v >> 32) & 0xffff'fffful);
+
+        return { offset1, offset2, offset3 };
+    }
+
     static InterruptDescriptor create(uint64_t handler, gdt::Selector selector,
                                       uint8_t stackTableOffset, uint8_t typeAndAttributes)
     {
