@@ -31,17 +31,15 @@ struct [[gnu::packed]] InterruptDescriptor
     uint32_t offset3;
     uint32_t reserved;
 
-    static InterruptDescriptor create(InterruptHandler handler, gdt::Selector selector,
-                                      uint8_t stackTableOffset, uint8_t typeAndAttributes)
-    {
-        return create(reinterpret_cast<uint64_t>(handler), selector, stackTableOffset, typeAndAttributes);
-    }
+    InterruptDescriptor() = default;
 
-    static InterruptDescriptor create(ExceptionHandler handler, gdt::Selector selector,
-                                      uint8_t stackTableOffset, uint8_t typeAndAttributes)
-    {
-        return create(reinterpret_cast<uint64_t>(handler), selector, stackTableOffset, typeAndAttributes);
-    }
+    InterruptDescriptor(InterruptHandler handler, gdt::Selector selector,
+                        uint8_t stackTableOffset, uint8_t typeAndAttributes) :
+        InterruptDescriptor(reinterpret_cast<uint64_t>(handler), selector, stackTableOffset, typeAndAttributes) {}
+
+    InterruptDescriptor(ExceptionHandler handler, gdt::Selector selector,
+                        uint8_t stackTableOffset, uint8_t typeAndAttributes) :
+        InterruptDescriptor(reinterpret_cast<uint64_t>(handler), selector, stackTableOffset, typeAndAttributes) {}
 
 private:
     static stl::Tuple<uint16_t, uint16_t, uint32_t> extractOffsets(uint64_t v)
@@ -53,20 +51,18 @@ private:
         return { offset1, offset2, offset3 };
     }
 
-    static InterruptDescriptor create(uint64_t handler, gdt::Selector selector,
-                                      uint8_t stackTableOffset, uint8_t typeAndAttributes)
+    InterruptDescriptor(uint64_t handler, gdt::Selector selector,
+                        uint8_t stackTableOffset, uint8_t typeAndAttributes)
     {
         auto [offset1, offset2, offset3] = extractOffsets(handler);
         
-        return {
-            .offset1 = offset1,
-            .selector = static_cast<uint16_t>(selector),
-            .stackTableOffset = stackTableOffset,
-            .typeAndAttributes = typeAndAttributes,
-            .offset2 = offset2,
-            .offset3 = offset3,
-            .reserved = 0
-        };
+        this->offset1 = offset1;
+        this->selector = static_cast<uint16_t>(selector);
+        this->stackTableOffset = stackTableOffset;
+        this->typeAndAttributes = typeAndAttributes;
+        this->offset2 = offset2;
+        this->offset3 = offset3;
+        this->reserved = 0;
     }
 };
 
@@ -106,8 +102,8 @@ void dumpInterruptContext(const InterruptContext* ctx)
 
 void init()
 {
-    g_IDT[3] = InterruptDescriptor::create(int3Handler, gdt::Selector::KernelCode, 0, 0b1000'0000 | 0b1111);
-    g_IDT[0xE] = InterruptDescriptor::create(pageFaultHandler, gdt::Selector::KernelCode, 0, 0b1000'0000 | 0b1111);
+    g_IDT[3] = InterruptDescriptor(int3Handler, gdt::Selector::KernelCode, 0, 0b1000'0000 | 0b1111);
+    g_IDT[0xE] = InterruptDescriptor(pageFaultHandler, gdt::Selector::KernelCode, 0, 0b1000'0000 | 0b1111);
 
     printf("loading IDT\n");
 
