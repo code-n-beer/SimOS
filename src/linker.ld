@@ -22,7 +22,7 @@ SECTIONS {
     . = 0xB8000;
 
     .bootsplash : {
-        *(.bootsplash)
+        KEEP(*(.bootsplash))
     }
 
     . = ALIGN(2M);
