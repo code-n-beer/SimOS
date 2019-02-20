@@ -1,5 +1,6 @@
 #include <stl/tuple.h>
 #include <simo/interrupt.h>
+#include <simo/gdt.h>
 #include <simo/utils.h>
 #include <printf.h>
 
@@ -39,27 +40,27 @@ struct [[gnu::packed]] InterruptDescriptor
         return { offset1, offset2, offset3 };
     }
 
-    static InterruptDescriptor create(InterruptHandler handler, uint16_t selector,
+    static InterruptDescriptor create(InterruptHandler handler, gdt::Selector selector,
                                       uint8_t stackTableOffset, uint8_t typeAndAttributes)
     {
         return create(reinterpret_cast<uint64_t>(handler), selector, stackTableOffset, typeAndAttributes);
     }
 
-    static InterruptDescriptor create(ExceptionHandler handler, uint16_t selector,
+    static InterruptDescriptor create(ExceptionHandler handler, gdt::Selector selector,
                                       uint8_t stackTableOffset, uint8_t typeAndAttributes)
     {
         return create(reinterpret_cast<uint64_t>(handler), selector, stackTableOffset, typeAndAttributes);
     }
 
 private:
-    static InterruptDescriptor create(uint64_t handler, uint16_t selector,
+    static InterruptDescriptor create(uint64_t handler, gdt::Selector selector,
                                       uint8_t stackTableOffset, uint8_t typeAndAttributes)
     {
         auto [offset1, offset2, offset3] = extractOffsets(handler);
         
         return {
             .offset1 = offset1,
-            .selector = selector,
+            .selector = static_cast<uint16_t>(selector),
             .stackTableOffset = stackTableOffset,
             .typeAndAttributes = typeAndAttributes,
             .offset2 = offset2,
@@ -105,8 +106,8 @@ void dumpInterruptContext(const InterruptContext* ctx)
 
 void init()
 {
-    g_IDT[3] = InterruptDescriptor::create(int3Handler, 0x8, 0, 0b1000'0000 | 0b1111);
-    g_IDT[0xE] = InterruptDescriptor::create(pageFaultHandler, 0x8, 0, 0b1000'0000 | 0b1111);
+    g_IDT[3] = InterruptDescriptor::create(int3Handler, gdt::Selector::KernelCode, 0, 0b1000'0000 | 0b1111);
+    g_IDT[0xE] = InterruptDescriptor::create(pageFaultHandler, gdt::Selector::KernelCode, 0, 0b1000'0000 | 0b1111);
 
     printf("loading IDT\n");
 
