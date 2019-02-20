@@ -3,20 +3,20 @@ ENTRY(start)
 
 SECTIONS {
     .boottext : {
-        *.S.o(.text)
+        */src_boot*.S.o(.text)
     }
 
     .bootrodata : {
-        *.S.o(.rodata)
+        */src_boot*.S.o(.rodata)
     }
 
     .bootdata : {
-        *.S.o(.data)
-        *.S.o(.multiboot)
+        */src_boot*.S.o(.data)
+        */src_boot*.S.o(.multiboot)
     }
 
     .bootbss : {
-        *.S.o(.bss COMMON)
+        */src_boot*.S.o(.bss COMMON)
     }
 
     . = 0xB8000;
