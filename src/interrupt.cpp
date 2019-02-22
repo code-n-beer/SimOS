@@ -20,6 +20,13 @@ struct InterruptContext
 using InterruptHandler = void (*)(InterruptContext*);
 using ExceptionHandler = void (*)(InterruptContext*, uint64_t);
 
+enum IDTFlags : uint8_t
+{
+    Present = 0b1000'0000,
+    TrapGate = 0b0000'1111,
+    InterruptGate = 0b0000'1110,
+};
+
 // TODO: make exception and interrupt handler descriptors separate types
 struct [[gnu::packed]] InterruptDescriptor
 {
@@ -102,8 +109,8 @@ void dumpInterruptContext(const InterruptContext* ctx)
 
 void init()
 {
-    g_IDT[3] = InterruptDescriptor(int3Handler, gdt::Selector::KernelCode, 0, 0b1000'0000 | 0b1111);
-    g_IDT[0xE] = InterruptDescriptor(pageFaultHandler, gdt::Selector::KernelCode, 0, 0b1000'0000 | 0b1111);
+    g_IDT[3] = InterruptDescriptor(int3Handler, gdt::Selector::KernelCode, 0, Present | InterruptGate);
+    g_IDT[0xE] = InterruptDescriptor(pageFaultHandler, gdt::Selector::KernelCode, 0, Present | TrapGate);
 
     printf("loading IDT\n");
 
