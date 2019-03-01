@@ -7,7 +7,7 @@ project('SimOS',
     'c_std=gnu11'
   ])
 
-qemu = find_program('qemu-system-x86_64')
+qemu = find_program('qemu-system-x86_64', required: false)
 build_iso = find_program('scripts/build_iso.sh')
 
 incdir = include_directories('include')
@@ -37,15 +37,17 @@ iso = custom_target('iso',
   input: ['src/boot/grub.cfg', kernel],
   command: [build_iso, '@OUTPUT@', '@OUTDIR@', '@INPUT0@', '@INPUT1@'])
 
-qemu_base_args = [
-  qemu, '-enable-kvm', '-m', '1G', '-cdrom', iso, '-cpu', 'host',
-  '-no-reboot', '-no-shutdown', '-monitor', 'stdio'
-]
+if qemu.found()
+  qemu_base_args = [
+    qemu, '-enable-kvm', '-m', '1G', '-cdrom', iso, '-cpu', 'host',
+    '-no-reboot', '-no-shutdown', '-monitor', 'stdio'
+  ]
 
-run_target('run',
-  depends: iso,
-  command: qemu_base_args)
+  run_target('run',
+    depends: iso,
+    command: qemu_base_args)
 
-run_target('run-debug',
-  depends: iso,
-  command: qemu_base_args + ['-s', '-S', '-d', 'int'])
+  run_target('run-debug',
+    depends: iso,
+    command: qemu_base_args + ['-s', '-S', '-d', 'int'])
+endif
