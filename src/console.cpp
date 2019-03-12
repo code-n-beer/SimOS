@@ -10,7 +10,7 @@ const size_t CONSOLE_WIDTH = 80;
 const size_t CONSOLE_HEIGHT = 25;
 
 size_t x;
-size_t y;
+size_t y = 79; // start printing at the bottom
 console::Color background;
 console::Color foreground;
 
