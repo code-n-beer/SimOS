@@ -1,7 +1,7 @@
 Set up the build environment:
 ```
 $ docker build -t simobuild .
-$ ./scripts/run_build_env.sh   # run from root folder
+$ ./scripts/run_build_env.sh   # run from repository root folder
 ```
 
 Building (in the container):
