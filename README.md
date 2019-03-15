@@ -1,7 +1,7 @@
 Set up the build environment:
 ```
 $ docker build -t simobuild .
-$ docker run --rm --mount type=bind,source="$(pwd)",target=/simos -i simobuild:latest /bin/sh
+$ ./scripts/run_build_env.sh   # run from root folder
 ```
 
 Building (in the container):
