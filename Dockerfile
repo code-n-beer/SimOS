@@ -2,6 +2,7 @@
 FROM archlinux/base as toolbuild
 
 COPY ./tools /tools
+
 RUN pacman -Sy --noconfirm archlinux-keyring \
     && pacman -Syu --noconfirm --needed base-devel sudo \
     && pacman -Scc --noconfirm \
@@ -26,3 +27,8 @@ RUN pacman -Sy --noconfirm archlinux-keyring \
     && pacman -Scc --noconfirm \
     && pacman -U --noconfirm /tools/*.tar.xz \
     && rm -rf /tools
+
+RUN pacman -Sy --noconfirm mtools grub xorriso
+
+# keep running
+CMD ["tail", "-f",  "/dev/null"] 
