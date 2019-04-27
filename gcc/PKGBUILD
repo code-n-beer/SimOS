@@ -4,17 +4,17 @@
 
 _target=x86_64-elf
 pkgname=$_target-gcc
-pkgver=9.0.0
-pkgrel=2
+pkgver=9.0.1
+pkgrel=1
 pkgdesc='The GNU Compiler Collection - cross compiler for x86_64-elf target'
 arch=(x86_64)
 url='http://gcc.gnu.org/'
 license=(GPL LGPL)
 depends=($_target-binutils zlib libmpc mpfr gmp)
 options=(!emptydirs)
-source=("ftp://ftp.mpi-sb.mpg.de/pub/gnu/mirror/gcc.gnu.org/pub/gcc/snapshots/9-20190217/gcc-9-20190217.tar.xz")
-sha256sums=('1c8f7223b811d7aa2ba016d8ab4fd34381842d939607b2c45a47e044c6f07e32')
-_basedir=gcc-9-20190217
+source=("https://gcc.gnu.org/pub/gcc/snapshots/9.0.1-RC-20190426/gcc-9.0.1-RC-20190426.tar.xz")
+sha256sums=('5f8b32943b992cfbabfb63a4a0c2abd658026fc472e8ba75bc3f066b84b58a29')
+_basedir=gcc-9.0.1-RC-20190426
 
 prepare() {
 	cd $_basedir
