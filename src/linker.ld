@@ -2,6 +2,8 @@
 ENTRY(start)
 
 SECTIONS {
+    . = SIZEOF_HEADERS;
+
     .boottext : {
         */src_boot*.S.o(.text)
     }

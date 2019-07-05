@@ -12,7 +12,7 @@ cpp_args = ['-ffreestanding', '-nostdlib', '-mno-red-zone', '-mcmodel=kernel', '
             '-m64', '-mgeneral-regs-only', '-DPRINTF_DISABLE_SUPPORT_FLOAT', '-fconcepts',
             '-fno-exceptions', '-fno-rtti', '-z', 'max-page-size=0x1000']
 
-cpp_link_args = ['-nostdlib', '-lgcc', '-T../src/linker.ld']
+cpp_link_args = ['-nostdlib', '-lgcc', '-T../src/linker.ld', '-z', 'max-page-size=0x1000']
 
 [host_machine]
 system = 'simo'
