@@ -31,6 +31,22 @@ sources = [
   'src/crtn.S'
 ]
 
+test_sources = [
+  'test/src/flags.test.cpp',
+  'test/src/typetraits.test.cpp',
+  'test/src/catch.hpp',
+  'test/src/tuple.test.cpp',
+  'test/src/main.cpp',
+  'test/src/lambda.test.cpp',
+]
+
+test_exe = executable('tests',
+  test_sources, 
+  include_directories : 'include', 
+  native : true,
+  cpp_args : ['-std=gnu++2a', '-fconcepts'])
+test('STL tests', test_exe)
+
 kernel = executable('kernel.elf',
   sources,
   include_directories: incdir)
