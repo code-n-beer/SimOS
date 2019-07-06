@@ -23,6 +23,7 @@ sources = [
   'src/gdt.cpp',
   'src/printf.c',
   'src/paging.cpp',
+  'src/framemap.cpp',
   'src/boot/boot.S',
   'src/boot/long_mode_init.S',
   'src/boot/multiboot.S',
