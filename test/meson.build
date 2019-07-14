@@ -12,4 +12,4 @@ test_exe = executable('tests',
   native : true,
   cpp_args : ['-std=gnu++2a', '-fconcepts', '-DCATCH_CONFIG_FAST_COMPILE'])
 
-test('STL tests', test_exe)
+test('STL tests', test_exe, args : ['-s', '--use-colour', 'no'])
