@@ -12,9 +12,7 @@ qemu_win = find_program('/mnt/c/dev/qemu/qemu-system-x86_64.exe', required: fals
 
 build_iso = find_program('scripts/build_iso.sh')
 
-incdir = include_directories('include')
-
-sources = [
+kernel_sources = [
   'src/crti.S',
   'src/utils.cpp',
   'src/kmain.cpp',
@@ -31,6 +29,10 @@ sources = [
   'src/crtn.S'
 ]
 
+kernel = executable('kernel.elf',
+  kernel_sources,
+  include_directories: 'include')
+
 test_sources = [
   'test/src/flags.test.cpp',
   'test/src/typetraits.test.cpp',
@@ -45,32 +47,22 @@ test_exe = executable('tests',
   include_directories : 'include', 
   native : true,
   cpp_args : ['-std=gnu++2a', '-fconcepts'])
-test('STL tests', test_exe)
 
-kernel = executable('kernel.elf',
-  sources,
-  include_directories: incdir)
+test('STL tests', test_exe)
 
 iso = custom_target('iso',
   output: 'simo.iso',
   input: ['src/boot/grub.cfg', kernel],
   command: [build_iso, '@OUTPUT@', '@OUTDIR@', '@INPUT0@', '@INPUT1@'])
 
-qemu_common_args = [
-  '-m', '1G', '-no-reboot', '-no-shutdown', '-monitor', 'stdio'
-]
-
+qemu_common_args = ['-m', '1G', '-no-reboot', '-no-shutdown', '-monitor', 'stdio']
 qemu_cmd = []
 
 if qemu.found()
-  qemu_cmd += [
-    qemu, qemu_common_args, '-enable-kvm', '-cpu', 'host', '-cdrom', iso
-  ]
+  qemu_cmd += [qemu, qemu_common_args, '-enable-kvm', '-cpu', 'host', '-cdrom', iso]
 elif qemu_win.found()
   qemu_wrapper = find_program('scripts/qemu_windows.sh')
-  qemu_cmd += [
-    qemu_wrapper, qemu_win.path(), iso, qemu_common_args
-  ]
+  qemu_cmd += [qemu_wrapper, qemu_win.path(), iso, qemu_common_args]
 endif
 
 if qemu.found() or qemu_win.found()
