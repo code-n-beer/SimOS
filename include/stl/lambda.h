@@ -68,4 +68,40 @@ private:
     CallableBase* m_callable = nullptr;
 };
 
+template<typename T>
+class LambdaRef;
+
+template<typename TResult, typename... TArgs>
+class LambdaRef<TResult(TArgs...)>
+{
+public:
+    LambdaRef() = default;
+
+    template<typename TFunc>
+    LambdaRef(TFunc&& func) :
+        m_callFunc(&LambdaRef::doCall<TFunc>), m_callable(&func)
+    {
+    }
+
+    template<typename... UArgs>
+    TResult operator()(UArgs&&... args)
+    {
+        // TODO: what to do in case of nullptr?
+        return m_callFunc(m_callable, static_cast<TArgs&&>(args)...);
+    }
+
+private:
+    template<typename T>
+    static TResult doCall(void* obj, TArgs... args)
+    {
+        auto func = static_cast<AddPointer<T>>(obj);
+        return (*func)(args...);
+    }
+
+    using CallFunc = TResult (*)(void*, TArgs...);
+
+    CallFunc m_callFunc = nullptr;
+    void* m_callable = nullptr;
+};
+
 }

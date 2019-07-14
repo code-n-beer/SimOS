@@ -65,6 +65,9 @@ template<typename T>
 using RemoveReference = detail::RemoveReference<T>::Type;
 
 template<typename T>
+using AddPointer = RemoveReference<T>*;
+
+template<typename T>
 constexpr T&& forward(RemoveReference<T>& t) noexcept
 {
     return static_cast<T&&>(t);
