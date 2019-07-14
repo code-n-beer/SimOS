@@ -7,13 +7,14 @@ project('SimOS',
     'c_std=gnu11'
   ])
 
+cpp_compiler = meson.get_compiler('cpp').cmd_array()[0]
+
 qemu = find_program('qemu-system-x86_64', required: false)
 qemu_win = find_program('/mnt/c/dev/qemu/qemu-system-x86_64.exe', required: false)
 
 build_iso = find_program('scripts/build_iso.sh')
 
-kernel_sources = [
-  'src/crti.S',
+kernel_sources = files([
   'src/utils.cpp',
   'src/kmain.cpp',
   'src/console.cpp',
@@ -26,12 +27,30 @@ kernel_sources = [
   'src/boot/long_mode_init.S',
   'src/boot/multiboot.S',
   'src/boot/bootsplash.cpp',
-  'src/crtn.S'
-]
+])
+
+crt_sources = files(['src/crti.S', 'src/crtn.S'])
+
+crtbegin_obj = run_command(cpp_compiler, '-print-file-name=crtbegin.o').stdout().strip()
+crtend_obj = run_command(cpp_compiler, '-print-file-name=crtend.o').stdout().strip()
+
+# this is a gross hack to link crti, crtbegin, crtend, and crtn in a specific
+# order (needed for global object constructors).
+# basically we compile everything as a static library, then extract the objects and
+# link the final binary with the GCC crtbegin/crtend objects.
+kernel_lib = static_library('kernel.lib',
+  kernel_sources, crt_sources,
+  include_directories: 'include',
+  pic : false)
 
 kernel = executable('kernel.elf',
-  kernel_sources,
-  include_directories: 'include')
+  objects : [
+    kernel_lib.extract_objects('src/crti.S'),
+    crtbegin_obj,
+    kernel_lib.extract_objects(kernel_sources),
+    crtend_obj,
+    kernel_lib.extract_objects('src/crtn.S'),
+  ])
 
 test_sources = [
   'test/src/flags.test.cpp',
