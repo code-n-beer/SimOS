@@ -69,7 +69,7 @@ if qemu.found()
 elif qemu_win.found()
   qemu_wrapper = find_program('scripts/qemu_windows.sh')
   qemu_cmd += [
-    qemu_wrapper, qemu_win.path(), iso, qemu_common_args, '-accel', 'whpx'
+    qemu_wrapper, qemu_win.path(), iso, qemu_common_args
   ]
 endif
 
