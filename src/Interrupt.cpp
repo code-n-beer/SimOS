@@ -1,7 +1,7 @@
-#include <stl/tuple.h>
-#include <simo/interrupt.h>
-#include <simo/gdt.h>
-#include <simo/utils.h>
+#include <STL/Tuple.h>
+#include <Simo/Interrupt.h>
+#include <Simo/GDT.h>
+#include <Simo/Utils.h>
 #include <printf.h>
 
 namespace interrupts

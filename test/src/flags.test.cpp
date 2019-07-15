@@ -1,7 +1,7 @@
 #include <cstdint>
 #include "catch.hpp"
 
-#include "stl/flags.h"
+#include "STL/Flags.h"
 
 enum class TestFlags : std::uint64_t
 {

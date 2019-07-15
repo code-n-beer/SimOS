@@ -1,8 +1,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <stl/bit.h>
-#include <stl/flags.h>
+#include <STL/Bit.h>
+#include <STL/Flags.h>
 
 namespace multiboot
 {

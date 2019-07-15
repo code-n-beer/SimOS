@@ -15,14 +15,14 @@ qemu_win = find_program('/mnt/c/dev/qemu/qemu-system-x86_64.exe', required: fals
 build_iso = find_program('scripts/build_iso.sh')
 
 kernel_sources = files([
-  'src/utils.cpp',
-  'src/kmain.cpp',
-  'src/console.cpp',
-  'src/interrupt.cpp',
-  'src/gdt.cpp',
+  'src/Utils.cpp',
+  'src/KMain.cpp',
+  'src/Console.cpp',
+  'src/Interrupt.cpp',
+  'src/GDT.cpp',
   'src/printf.c',
-  'src/paging.cpp',
-  'src/framemap.cpp',
+  'src/Paging.cpp',
+  'src/FrameMap.cpp',
   'src/boot/boot.S',
   'src/boot/long_mode_init.S',
   'src/boot/multiboot.S',

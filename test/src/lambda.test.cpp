@@ -2,7 +2,7 @@
 #include <cstdio>
 #include "catch.hpp"
 
-#include "stl/lambda.h"
+#include "STL/Lambda.h"
 
 TEST_CASE("lambda", "[lambda]") {
     int x = 5;

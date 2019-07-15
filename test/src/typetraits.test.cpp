@@ -1,5 +1,5 @@
 #include "catch.hpp"
-#include "stl/typetraits.h"
+#include "STL/TypeTraits.h"
 
 template<typename T>
 struct TestTemplate {};

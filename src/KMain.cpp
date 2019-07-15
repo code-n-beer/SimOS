@@ -1,15 +1,15 @@
-#include <simo/kernel.h>
+#include <Simo/Kernel.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <simo/multiboot.h>
+#include <Simo/Multiboot.h>
 #include <printf.h>
-#include <simo/console.h>
-#include <simo/elf.h>
-#include <simo/paging.h>
-#include <stl/lambda.h>
-#include <simo/interrupt.h>
-#include <simo/gdt.h>
+#include <Simo/Console.h>
+#include <Simo/ELF.h>
+#include <Simo/Paging.h>
+#include <STL/Lambda.h>
+#include <Simo/Interrupt.h>
+#include <Simo/GDT.h>
 
 void dumpTag(const multiboot::MmapTag& mmapTag)
 {

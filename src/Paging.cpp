@@ -1,12 +1,12 @@
-#include <simo/kernel.h>
-#include <simo/multiboot.h>
-#include <simo/paging.h>
-#include <simo/pagemap.h>
-#include <simo/utils.h>
-#include <simo/framemap.h>
+#include <Simo/Kernel.h>
+#include <Simo/Multiboot.h>
+#include <Simo/Paging.h>
+#include <Simo/PageMap.h>
+#include <Simo/Utils.h>
+#include <Simo/FrameMap.h>
 #include <printf.h>
-#include <stl/tuple.h>
-#include <stl/bit.h>
+#include <STL/Tuple.h>
+#include <STL/Bit.h>
 
 namespace paging
 {

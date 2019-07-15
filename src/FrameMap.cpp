@@ -1,5 +1,5 @@
-#include <simo/framemap.h>
-#include <simo/utils.h>
+#include <Simo/FrameMap.h>
+#include <Simo/Utils.h>
 #include <printf.h>
 
 namespace paging

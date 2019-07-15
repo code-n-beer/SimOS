@@ -1,5 +1,5 @@
-#include <simo/gdt.h>
-#include <stl/bit.h>
+#include <Simo/GDT.h>
+#include <STL/Bit.h>
 
 namespace gdt
 {

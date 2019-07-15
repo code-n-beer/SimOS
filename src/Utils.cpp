@@ -1,4 +1,4 @@
-#include <simo/utils.h>
+#include <Simo/Utils.h>
 
 void* memcpy(void* dest, const void* src, size_t length)
 {

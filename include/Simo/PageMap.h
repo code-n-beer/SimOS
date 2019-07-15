@@ -3,10 +3,10 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include <simo/paging.h>
-#include <stl/bit.h>
-#include <stl/flags.h>
-#include <stl/typetraits.h>
+#include <Simo/Paging.h>
+#include <STL/Bit.h>
+#include <STL/Flags.h>
+#include <STL/TypeTraits.h>
 
 namespace paging
 {

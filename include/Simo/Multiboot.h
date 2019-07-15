@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include <stl/bit.h>
+#include <STL/Bit.h>
 
 namespace multiboot
 {

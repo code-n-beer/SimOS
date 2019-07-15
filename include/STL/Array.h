@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stddef.h>
-#include "typetraits.h"
+#include "TypeTraits.h"
 
 namespace stl
 {

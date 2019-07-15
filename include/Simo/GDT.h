@@ -1,4 +1,4 @@
-#include <simo/kernel.h>
+#include <Simo/Kernel.h>
 
 namespace gdt
 {

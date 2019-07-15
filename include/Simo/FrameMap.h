@@ -1,6 +1,6 @@
-#include <simo/kernel.h>
-#include <simo/paging.h>
-#include <stl/tuple.h>
+#include <Simo/Kernel.h>
+#include <Simo/Paging.h>
+#include <STL/Tuple.h>
 
 namespace paging
 {

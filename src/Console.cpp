@@ -1,7 +1,7 @@
-#include <simo/kernel.h>
-#include <simo/console.h>
-#include <simo/utils.h>
-#include <stl/array.h>
+#include <Simo/Kernel.h>
+#include <Simo/Console.h>
+#include <Simo/Utils.h>
+#include <STL/Array.h>
 
 namespace
 {
