@@ -1,11 +1,13 @@
 #include <Simo/Kernel.h>
 #include <Simo/Paging.h>
+#include <Simo/Literals.h>
 #include <STL/Tuple.h>
 
 namespace paging
 {
 
-const size_t PAGE_SIZE = 0x1000;
+using namespace literals;
+const size_t PAGE_SIZE = 4KiB;
 
 class PhysicalFrameMap
 {

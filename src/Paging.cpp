@@ -4,9 +4,12 @@
 #include <Simo/PageMap.h>
 #include <Simo/Utils.h>
 #include <Simo/FrameMap.h>
+#include <Simo/Literals.h>
 #include <printf.h>
 #include <STL/Tuple.h>
 #include <STL/Bit.h>
+
+using namespace literals;
 
 namespace paging
 {
@@ -100,7 +103,7 @@ PDPT& getPDPT(const void* addr)
 {
     return *reinterpret_cast<PDPT*>(
         PDPT::VirtualBaseAddress
-        + PML4::indexFromAddress(addr) * 0x1000ul
+        + PML4::indexFromAddress(addr) * 4KiB
     );
 }
 
@@ -108,8 +111,8 @@ PD& getPD(const void* addr)
 {
     return *reinterpret_cast<PD*>(
         PD::VirtualBaseAddress
-        + PML4::indexFromAddress(addr) * 0x20'0000ul
-        + PDPT::indexFromAddress(addr) * 0x1000ul
+        + PML4::indexFromAddress(addr) * 2MiB
+        + PDPT::indexFromAddress(addr) * 4KiB
     );
 }
 
@@ -117,9 +120,9 @@ PT& getPT(const void* addr)
 {
     return *reinterpret_cast<PT*>(
         PT::VirtualBaseAddress
-        + PML4::indexFromAddress(addr) * 0x4000'0000ul
-        + PDPT::indexFromAddress(addr) * 0x20'0000ul
-        + PD::indexFromAddress(addr) * 0x1000ul
+        + PML4::indexFromAddress(addr) * 1GiB
+        + PDPT::indexFromAddress(addr) * 2MiB
+        + PD::indexFromAddress(addr) * 4KiB
     );
 }
 
@@ -236,7 +239,7 @@ void setupPageTables(const multiboot::Info* multibootInfo)
     mapRange(&_kernelVirtualStart, kernelPA, kernelSize, PMEFlags::Present | PMEFlags::Write);
 
     // map the stack
-    mapRange(&_kernelStackTopVA, identityMappedVirtualToPhysical(&_kernelStackTopPA), 0x4000, PMEFlags::Present | PMEFlags::Write);
+    mapRange(&_kernelStackTopVA, identityMappedVirtualToPhysical(&_kernelStackTopPA), 16KiB, PMEFlags::Present | PMEFlags::Write);
 
     // map VGA console - TODO: rework the console itself
     mapPage((void*)0xb8000, PhysicalAddress{0xb8000}, PMEFlags::Present | PMEFlags::Write);
