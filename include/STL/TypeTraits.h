@@ -68,6 +68,12 @@ template<typename T>
 using AddPointer = RemoveReference<T>*;
 
 template<typename T>
+constexpr bool IsPointer = false;
+
+template<typename T>
+constexpr bool IsPointer<T*> = true;
+
+template<typename T>
 constexpr T&& forward(RemoveReference<T>& t) noexcept
 {
     return static_cast<T&&>(t);
