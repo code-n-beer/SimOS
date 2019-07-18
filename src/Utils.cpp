@@ -1,4 +1,5 @@
 #include <Simo/Utils.h>
+#include <printf.h>
 
 void* memcpy(void* dest, const void* src, size_t length)
 {
@@ -41,4 +42,23 @@ void* memset(void* dest, int value, size_t length)
     }
 
     return dest;
+}
+
+namespace assertion
+{
+
+constexpr const char* ASSERTION_FORMAT =
+R"(
+Assertion failed: %s
+    at %s:%d:%s
+)";
+
+[[noreturn]] void assertionFailed(const char* msg, const char* file, int line, const char* func)
+{
+    printf(ASSERTION_FORMAT, msg, file, line, func);
+    while (true) {
+        asm("hlt");
+    }
+}
+
 }
