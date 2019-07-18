@@ -1,7 +1,7 @@
 #include <Simo/Utils.h>
 #include <printf.h>
 
-void* memcpy(void* dest, const void* src, size_t length)
+extern "C" void* memcpy(void* dest, const void* src, size_t length)
 {
     if (dest == src || length == 0) {
         return dest;
@@ -28,12 +28,12 @@ void* memcpy(void* dest, const void* src, size_t length)
     return dest;
 }
 
-void* memmove(void* dest, const void* src, size_t length)
+extern "C" void* memmove(void* dest, const void* src, size_t length)
 {
     return memcpy(dest, src, length);
 }
 
-void* memset(void* dest, int value, size_t length)
+extern "C" void* memset(void* dest, int value, size_t length)
 {
     auto destPtr = static_cast<char*>(dest);
 
