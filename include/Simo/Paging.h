@@ -42,6 +42,11 @@ constexpr PhysicalAddress operator-(PhysicalAddress address, uint64_t offset)
     return PhysicalAddress{static_cast<uint64_t>(address) - offset};
 }
 
+constexpr uint64_t operator-(PhysicalAddress a, PhysicalAddress b)
+{
+    return static_cast<uint64_t>(a) - static_cast<uint64_t>(b);
+}
+
 constexpr PhysicalAddress& operator+=(PhysicalAddress& address, uint64_t offset)
 {
     address = address + offset;

@@ -8,6 +8,7 @@
 #include <printf.h>
 #include <STL/Tuple.h>
 #include <STL/Bit.h>
+#include <STL/TypeTraits.h>
 
 using namespace literals;
 
@@ -28,9 +29,35 @@ using multiboot::MmapTag;
 using multiboot::TagType;
 using multiboot::ElfSectionsTag;
 
-constexpr PhysicalAddress alignToPage(PhysicalAddress addr)
+enum class AlignMode
 {
-    return PhysicalAddress{stl::align(PAGE_SIZE, static_cast<uint64_t>(addr))};
+    Up,
+    Down
+};
+
+constexpr PhysicalAddress alignToPage(PhysicalAddress addr, AlignMode alignMode = AlignMode::Up)
+{
+    auto ret = PhysicalAddress{stl::align(PAGE_SIZE, static_cast<uint64_t>(addr))};
+
+    if (alignMode == AlignMode::Up || ret == addr) {
+        return ret;
+    } else {
+        return ret - PAGE_SIZE;
+    }
+}
+
+// ugh this is gross
+template<typename T>
+T alignToPage(T addr, AlignMode alignMode = AlignMode::Up)
+{
+    static_assert(stl::IsPointer<T>);
+    auto ret = stl::align(PAGE_SIZE, reinterpret_cast<uint64_t>(addr));
+
+    if (alignMode == AlignMode::Down && ret != reinterpret_cast<uint64_t>(addr)) {
+        ret -= PAGE_SIZE;
+    }
+
+    return reinterpret_cast<T>(ret);
 }
 
 MmapEntry findBiggestMemoryArea(const MmapTag* mmap)
@@ -173,7 +200,8 @@ void mapPage(void* virtualAddr, PhysicalAddress physAddr, stl::Flags<PMEFlags> f
 
 void mapRange(void* virtualAddr, PhysicalAddress physAddr, size_t length, stl::Flags<PMEFlags> flags)
 {
-    auto va = static_cast<char*>(virtualAddr);
+    auto va = alignToPage<char*>(static_cast<char*>(virtualAddr), AlignMode::Down);
+    physAddr = alignToPage(physAddr, AlignMode::Down);
 
     for (uint64_t mapped = 0; mapped < length; mapped += PAGE_SIZE) {
         mapPage(va, physAddr, flags);

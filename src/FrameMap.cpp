@@ -6,9 +6,9 @@ namespace paging
 {
 
 PhysicalFrameMap::PhysicalFrameMap(PhysicalAddress memoryBase, size_t memorySize) :
-    m_memoryBase(memoryBase), m_bitmapSize(stl::align(64, memorySize / PAGE_SIZE) / 64)
+    m_memoryBase(memoryBase), m_bitmapSize(memorySize / PAGE_SIZE)
 {
-    memset(m_bitmap, 0, m_bitmapSize * sizeof(uint64_t));
+    memset(m_bitmap, 0, m_bitmapSize);
 }
 
 PhysicalAddress PhysicalFrameMap::allocateFrame()
@@ -51,25 +51,30 @@ void PhysicalFrameMap::markFrame(PhysicalAddress address, bool used)
         return;
     }
 
-    auto [entry, mask] = computeEntryIndexAndMask(address);
+    auto entryIdx = (address - m_memoryBase) / PAGE_SIZE;
+    ASSERT(entryIdx < m_bitmapSize);
 
-    // TODO: assert(entryIdx < m_bitmapSize);
-    // TODO: what if there are multiple mappings to the same frame and only one of them is unmapped and freed?
+    auto& entry = m_bitmap[entryIdx];
 
     if (used) {
-        m_bitmap[entry] |= mask;
+        // TODO: check for wraparound
+        entry++;
     } else {
-        m_bitmap[entry] &= ~mask;
+        ASSERT(entry > 0);
+        entry--;
     }
+
+    //printf("marked frame at %016lx: %d\n", uint64_t(address), entry);
 }
 
 bool PhysicalFrameMap::isFrameUsed(PhysicalAddress address) const
 {
-    auto [entry, mask] = computeEntryIndexAndMask(address);
+    auto entryIdx = (address - m_memoryBase) / PAGE_SIZE;
+    ASSERT(entryIdx < m_bitmapSize);
 
-    // TODO: assert(entryIdx < m_bitmapSize);
+    auto& entry = m_bitmap[entryIdx];
 
-    return (m_bitmap[entry] & mask) != 0;
+    return entry > 0;
 }
 
 size_t PhysicalFrameMap::getBitmapSize() const
@@ -79,17 +84,7 @@ size_t PhysicalFrameMap::getBitmapSize() const
 
 size_t PhysicalFrameMap::getByteSize() const
 {
-    return sizeof(*this) + m_bitmapSize * sizeof(uint64_t);
-}
-
-stl::Tuple<size_t, uint64_t> PhysicalFrameMap::computeEntryIndexAndMask(PhysicalAddress address) const
-{
-    const auto frameIdx = ((static_cast<uint64_t>(address) - static_cast<uint64_t>(m_memoryBase)) / PAGE_SIZE);
-    const auto entryIdx = frameIdx / (sizeof(uint64_t) * 8);
-    const auto shift = frameIdx % (sizeof(uint64_t) * 8);
-    const auto mask = 1UL << shift;
-
-    return {entryIdx, mask};
+    return sizeof(*this) + m_bitmapSize;
 }
 
 }

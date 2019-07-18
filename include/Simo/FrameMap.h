@@ -23,10 +23,9 @@ public:
     size_t getByteSize() const;
 
 private:
-    stl::Tuple<size_t, uint64_t> computeEntryIndexAndMask(PhysicalAddress address) const;
     PhysicalAddress m_memoryBase;
     size_t m_bitmapSize;
-    uint64_t m_bitmap[0];
+    uint8_t m_bitmap[0];
 };
 
 }
