@@ -2,6 +2,11 @@
 #include <printf.h>
 #include <Simo/Serial.h>
 
+// these are #defined to the gcc builtins in the header
+#undef memcpy
+#undef memset
+#undef memmove
+
 extern "C" void* memcpy(void* dest, const void* src, size_t length)
 {
     if (dest == src || length == 0) {
