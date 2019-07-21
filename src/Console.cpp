@@ -139,8 +139,3 @@ void putChar(char c)
 }
 
 }
-
-extern "C" void _putchar(char c)
-{
-    console::putChar(c);
-}

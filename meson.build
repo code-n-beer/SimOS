@@ -23,6 +23,7 @@ kernel_sources = files([
   'src/printf.c',
   'src/Paging.cpp',
   'src/FrameMap.cpp',
+  'src/Serial.cpp',
   'src/boot/boot.S',
   'src/boot/long_mode_init.S',
   'src/boot/multiboot.S',
@@ -61,10 +62,10 @@ qemu_common_args = ['-m', '1G', '-no-reboot', '-no-shutdown', '-monitor', 'stdio
 qemu_cmd = []
 
 if qemu.found()
-  qemu_cmd += [qemu, qemu_common_args, '-enable-kvm', '-cpu', 'host', '-cdrom', iso]
+  qemu_cmd += [qemu, qemu_common_args, '-enable-kvm', '-cpu', 'host', '-cdrom', iso, '-serial', 'stdio']
 elif qemu_win.found()
   qemu_wrapper = find_program('scripts/qemu_windows.sh')
-  qemu_cmd += [qemu_wrapper, qemu_win.path(), iso, qemu_common_args]
+  qemu_cmd += [qemu_wrapper, qemu_win.path(), iso, qemu_common_args, '-serial', 'file:CON']
 endif
 
 if qemu.found() or qemu_win.found()

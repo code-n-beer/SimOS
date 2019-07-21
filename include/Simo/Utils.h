@@ -23,3 +23,21 @@ inline void doAssert(bool expression, const char* msg, const char* file = __buil
 }
 
 #define ASSERT(expr) assertion::doAssert((expr), #expr)
+
+inline void outb(uint16_t port, uint8_t value)
+{
+    asm volatile("outb %0, %1" : : "a"(value), "d"(port));
+}
+
+inline uint8_t inb(uint16_t port)
+{
+    uint8_t value = 0;
+
+    asm volatile("inb %1, %0" : "=a"(value) : "d"(port));
+
+    return value;
+}
+
+using PutcharHandler = void (*)(char);
+
+void setPutcharHandler(PutcharHandler handler);

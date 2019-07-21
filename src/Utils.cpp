@@ -1,5 +1,6 @@
 #include <Simo/Utils.h>
 #include <printf.h>
+#include <Simo/Serial.h>
 
 extern "C" void* memcpy(void* dest, const void* src, size_t length)
 {
@@ -61,4 +62,21 @@ Assertion failed: %s
     }
 }
 
+}
+
+static PutcharHandler g_putchar = &serial::write;
+
+void setPutcharHandler(PutcharHandler handler)
+{
+    g_putchar = handler;
+}
+
+extern "C" void _putchar(char c)
+{
+    if (!g_putchar) {
+        // hmm
+        return;
+    }
+
+    g_putchar(c);
 }

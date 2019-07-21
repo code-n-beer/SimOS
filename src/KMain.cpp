@@ -8,8 +8,10 @@
 #include <Simo/ELF.h>
 #include <Simo/Paging.h>
 #include <STL/Lambda.h>
+#include <STL/Bit.h>
 #include <Simo/Interrupt.h>
 #include <Simo/GDT.h>
+#include <Simo/Serial.h>
 
 void dumpTag(const multiboot::MmapTag& mmapTag)
 {

@@ -31,4 +31,10 @@ constexpr T align(size_t alignment, T value)
     return ((value - 1) + alignment) & ~(alignment - 1);
 }
 
+template<typename T = uint64_t, typename... Ts>
+constexpr T bits(Ts... indices)
+{
+    return ((1 << indices) | ...);
+}
+
 }

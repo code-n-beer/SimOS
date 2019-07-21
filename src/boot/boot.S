@@ -14,6 +14,28 @@
 #define VGA_BASE 0xB8000
 
 /*
+const uint16_t COM1 = 0x3F8;
+
+enum SerialPortOffsets : uint16_t
+{
+    Data = 0,
+    DivisorLatchLow = 0,
+    DivisorLatchHigh = 1,
+    InterruptEnable = 1,
+    FifoControl = 2,
+    LineControl = 3,
+    LineStatus = 5,
+};
+*/
+
+#define COM1_DIVISOR_LOW        0x3F8
+#define COM1_DIVISOR_HIGH       (0x3F8 + 1)
+#define COM1_INTERRUPT_ENABLE   (0x3F8 + 1)
+#define COM1_FIFO_CONTROL       (0x3F8 + 2)
+#define COM1_LINE_CONTROL       (0x3F8 + 3)
+#define COM1_LINE_STATUS        (0x3F8 + 5)
+
+/*
     LongMode = stl::bit(53),
     Present = stl::bit(47),
     CodeOrData = stl::bit(44),
@@ -53,6 +75,39 @@
 start:
     movl $.Lstack, %esp
     movl %ebx, %edi
+
+    /* set up serial console */
+
+    /* disable interrupts */
+    xorb %al, %al
+    movw $COM1_INTERRUPT_ENABLE, %dx
+    outb %al, %dx
+
+    /* set baud rate to 115200bps */
+    /* set DLAB */
+    movb $(1 << 7), %al
+    movw $COM1_LINE_CONTROL, %dx
+    outb %al, %dx
+
+    /* divisor latch low */
+    movb $1, %al
+    movw $COM1_DIVISOR_LOW, %dx
+    outb %al, %dx
+
+    /* divisor latch high */
+    xorb %al, %al
+    movw $COM1_DIVISOR_HIGH, %dx
+    outb %al, %dx
+
+    /* 8 bits, no parity, one stop bit */
+    movb $((1 << 1) | (1 << 0)), %al
+    movw $COM1_LINE_CONTROL, %dx
+    outb %al, %dx
+
+    /* clear FIFOs and disable them */
+    movb $((1 << 2) | (1 << 1)), %al
+    movw $COM1_LINE_CONTROL, %dx
+    outb %al, %dx
 
     /* identity map the first 1GiB of physical memory, and then map it to
        0xFFFFFFFF_80000000 as well */
