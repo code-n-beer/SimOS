@@ -109,19 +109,20 @@ using PTE = PageMapEntry<
 >;
 
 template<typename T>
-concept bool ValidPageMapEntry =
-    stl::concepts::IsTrivial<T>
-    && stl::concepts::IsStandardLayout<T>
-    && requires {
-        sizeof(T) == sizeof(uint64_t);
-    };
+constexpr bool ValidPageMapEntry =
+    stl::IsTrivial<T>
+    && stl::IsStandardLayout<T>
+    && sizeof(T) == sizeof(uint64_t);
 
 template<size_t S>
-concept bool ValidAddrShift = (S >= 12) && (S <= 39);
+constexpr bool ValidAddrShift = (S >= 12) && (S <= 39);
 
-template<ValidPageMapEntry TEntry, ValidAddrShift VirtAddrShift, uint64_t BaseAddress>
+template<typename TEntry, size_t VirtAddrShift, uint64_t BaseAddress>
 struct PageMapBase
 {
+    static_assert(ValidAddrShift<VirtAddrShift>);
+    static_assert(ValidPageMapEntry<TEntry>);
+
     TEntry entries[512];
 
     PageMapBase() :

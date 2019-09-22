@@ -95,35 +95,3 @@ constexpr RemoveReference<T>&& move(T&& t) noexcept
 }
 
 }
-
-namespace stl::concepts
-{
-
-template<typename T, typename U>
-concept bool IsSame = stl::IsSame<T, U>;
-
-template<typename T, typename... Ts>
-concept bool AreSame = stl::AreSame<T, Ts...>;
-
-template<typename T>
-concept bool IsEmpty = stl::IsEmpty<T>;
-
-template<typename T>
-concept bool IsTrivial = stl::IsTrivial<T>;
-
-template<typename T>
-concept bool IsStandardLayout = stl::IsStandardLayout<T>;
-
-template<typename T>
-concept bool IsLvalueReference = stl::IsLvalueReference<T>;
-
-template<typename T>
-concept bool IsRvalueReference = stl::IsRvalueReference<T>;
-
-template<typename T>
-concept bool IsReference = stl::IsReference<T>;
-
-template<typename T>
-concept bool IsEnum = stl::IsEnum<T>;
-
-}
