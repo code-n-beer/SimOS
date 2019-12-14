@@ -1,3 +1,6 @@
+SimOS is an experiment in operating system design focusing on comedic value rather than
+functionality or implementation correctness.
+
 # Environment setup
 Install dependencies:
 ```
