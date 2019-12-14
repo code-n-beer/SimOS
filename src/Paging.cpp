@@ -10,8 +10,6 @@
 #include <STL/Bit.h>
 #include <STL/TypeTraits.h>
 
-using namespace literals;
-
 namespace paging
 {
 
@@ -130,7 +128,7 @@ PDPT& getPDPT(const void* addr)
 {
     return *reinterpret_cast<PDPT*>(
         PDPT::VirtualBaseAddress
-        + PML4::indexFromAddress(addr) * 4KiB
+        + PML4::indexFromAddress(addr) * 4_KiB
     );
 }
 
@@ -138,8 +136,8 @@ PD& getPD(const void* addr)
 {
     return *reinterpret_cast<PD*>(
         PD::VirtualBaseAddress
-        + PML4::indexFromAddress(addr) * 2MiB
-        + PDPT::indexFromAddress(addr) * 4KiB
+        + PML4::indexFromAddress(addr) * 2_MiB
+        + PDPT::indexFromAddress(addr) * 4_KiB
     );
 }
 
@@ -147,9 +145,9 @@ PT& getPT(const void* addr)
 {
     return *reinterpret_cast<PT*>(
         PT::VirtualBaseAddress
-        + PML4::indexFromAddress(addr) * 1GiB
-        + PDPT::indexFromAddress(addr) * 2MiB
-        + PD::indexFromAddress(addr) * 4KiB
+        + PML4::indexFromAddress(addr) * 1_GiB
+        + PDPT::indexFromAddress(addr) * 2_MiB
+        + PD::indexFromAddress(addr) * 4_KiB
     );
 }
 
@@ -267,7 +265,7 @@ void setupPageTables(const multiboot::Info* multibootInfo)
     mapRange(&_kernelVirtualStart, kernelPA, kernelSize, PMEFlags::Present | PMEFlags::Write);
 
     // map the stack
-    mapRange(&_kernelStackTopVA, identityMappedVirtualToPhysical(&_kernelStackTopPA), 16KiB, PMEFlags::Present | PMEFlags::Write);
+    mapRange(&_kernelStackTopVA, identityMappedVirtualToPhysical(&_kernelStackTopPA), 16_KiB, PMEFlags::Present | PMEFlags::Write);
 
     // map VGA console - TODO: rework the console itself
     mapPage((void*)0xb8000, PhysicalAddress{0xb8000}, PMEFlags::Present | PMEFlags::Write);

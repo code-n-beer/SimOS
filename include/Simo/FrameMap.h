@@ -1,3 +1,5 @@
+#pragma once
+
 #include <Simo/Kernel.h>
 #include <Simo/Paging.h>
 #include <Simo/Literals.h>
@@ -6,8 +8,7 @@
 namespace paging
 {
 
-using namespace literals;
-const size_t PAGE_SIZE = 4KiB;
+constexpr size_t PAGE_SIZE = 4_KiB;
 
 class PhysicalFrameMap
 {

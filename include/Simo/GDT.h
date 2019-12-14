@@ -1,3 +1,5 @@
+#pragma once
+
 #include <Simo/Kernel.h>
 
 namespace gdt

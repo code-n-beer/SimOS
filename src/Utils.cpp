@@ -85,3 +85,11 @@ extern "C" void _putchar(char c)
 
     g_putchar(c);
 }
+
+void* operator new  (size_t, void* p) throw() { return p; }
+void* operator new[](size_t, void* p) throw() { return p; }
+
+void  operator delete  (void*) throw() { };
+void  operator delete[](void*) throw() { };
+void  operator delete  (void*, size_t) throw() { };
+void  operator delete[](void*, size_t) throw() { };

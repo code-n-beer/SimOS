@@ -1,0 +1,23 @@
+[binaries]
+ld = 'lld'
+c = 'clang'
+cpp = 'clang++'
+ar = 'ar'
+strip = 'strip'
+
+[properties]
+c_args = ['-target', 'x86_64-elf', '-mno-mmx', '-mno-sse', '-ffreestanding', '-nostdlib',
+          '-mno-red-zone', '-mcmodel=kernel', '-fno-strict-aliasing', '-m64', '-DPRINTF_DISABLE_SUPPORT_FLOAT']
+
+cpp_args = ['-target', 'x86_64-elf', '-mno-mmx', '-mno-sse', '-ffreestanding', '-nostdlib',
+            '-mno-red-zone', '-mcmodel=kernel', '-fno-strict-aliasing', '-m64', '-DPRINTF_DISABLE_SUPPORT_FLOAT',
+            '-fno-stack-protector', '-fno-exceptions', '-fno-rtti', '-ferror-limit=5', '-Wno-user-defined-literals',
+            '-Wno-reserved-user-defined-literal']
+
+cpp_link_args = ['-target', 'x86_64-elf', '-nostdlib']
+
+[host_machine]
+system = 'none'
+cpu_family = 'x86_64'
+cpu = 'x86_64'
+endian = 'little'

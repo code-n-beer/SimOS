@@ -9,8 +9,8 @@ project('SimOS',
 
 cpp_compiler = meson.get_compiler('cpp').cmd_array()[0]
 
-qemu = find_program('qemu-system-x86_64', required: false)
 qemu_win = find_program('/mnt/c/dev/qemu/qemu-system-x86_64.exe', required: false)
+qemu = find_program('qemu-system-x86_64', required: false)
 
 build_iso = find_program('scripts/build_iso.sh')
 
@@ -32,6 +32,7 @@ kernel_sources = files([
 
 crt_sources = files(['src/crti.S', 'src/crtn.S'])
 
+# TODO: currently these aren't used because -print-file-name=crtbegin/end.o doesn't do anything on clang
 crtbegin_obj = run_command(cpp_compiler, '-print-file-name=crtbegin.o').stdout().strip()
 crtend_obj = run_command(cpp_compiler, '-print-file-name=crtend.o').stdout().strip()
 
@@ -42,14 +43,16 @@ crtend_obj = run_command(cpp_compiler, '-print-file-name=crtend.o').stdout().str
 kernel_lib = static_library('kernel.lib',
   kernel_sources, crt_sources,
   include_directories: 'include',
-  pic : false)
+  pic: false)
 
 kernel = executable('kernel.elf',
-  objects : [
+  link_language: 'cpp',
+  link_args: ['-T' + join_paths(meson.current_source_dir(), 'src', 'linker.ld')],
+  objects: [
     kernel_lib.extract_objects('src/crti.S'),
-    crtbegin_obj,
+    #crtbegin_obj,
     kernel_lib.extract_objects(kernel_sources),
-    crtend_obj,
+    #crtend_obj,
     kernel_lib.extract_objects('src/crtn.S'),
   ])
 
@@ -61,14 +64,17 @@ iso = custom_target('iso',
 qemu_common_args = ['-m', '1G', '-no-reboot', '-no-shutdown', '-monitor', 'stdio']
 qemu_cmd = []
 
-if qemu.found()
-  qemu_cmd += [qemu, qemu_common_args, '-enable-kvm', '-cpu', 'host', '-cdrom', iso, '-serial', 'stdio']
-elif qemu_win.found()
+qemu_found = false
+if qemu_win.found()
   qemu_wrapper = find_program('scripts/qemu_windows.sh')
   qemu_cmd += [qemu_wrapper, qemu_win.path(), iso, qemu_common_args, '-serial', 'file:CON']
+  qemu_found = true
+elif qemu.found()
+  qemu_cmd += [qemu, qemu_common_args, '-enable-kvm', '-cpu', 'host', '-cdrom', iso, '-serial', 'stdio']
+  qemu_found = true
 endif
 
-if qemu.found() or qemu_win.found()
+if qemu_found
   run_target('run',
     depends: iso,
     command: qemu_cmd)

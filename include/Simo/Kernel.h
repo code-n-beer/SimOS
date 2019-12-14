@@ -4,10 +4,10 @@
 #include <stdint.h>
 
 // support for placement new
-inline void* operator new  (size_t, void* p) throw() { return p; }
-inline void* operator new[](size_t, void* p) throw() { return p; }
+void* operator new  (size_t, void* p) throw();
+void* operator new[](size_t, void* p) throw();
 
-inline void  operator delete  (void*) throw() { };
-inline void  operator delete[](void*) throw() { };
-inline void  operator delete  (void*, size_t) throw() { };
-inline void  operator delete[](void*, size_t) throw() { };
+void  operator delete  (void*) throw();
+void  operator delete[](void*) throw();
+void  operator delete  (void*, size_t) throw();
+void  operator delete[](void*, size_t) throw();
